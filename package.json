@@ -1,7 +1,7 @@
 {
     "name": "vscode-mythic",
     "publisher": "0tickpulse",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "A Visual Studio Code extension that adds language support for MythicMobs configurations.",
     "scripts": {
         "test": "node out/tests/test.js",
