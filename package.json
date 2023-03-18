@@ -1,7 +1,7 @@
 {
     "name": "vscode-mythic",
     "publisher": "0tickpulse",
-    "icon": "assets/mythicicon_128x128.png",
+    "icon": "assets/mythicIcon_128x128.png",
     "version": "1.6.0",
     "description": "A Visual Studio Code extension that adds language support for MythicMobs configurations.",
     "scripts": {
