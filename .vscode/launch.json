@@ -16,7 +16,7 @@
 			"request": "launch",
 			"name": "Launch Client",
 			"runtimeExecutable": "${execPath}",
-			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
+			"args": ["--extensionDevelopmentPath=${workspaceRoot}", "--verbose"],
 			"outFiles": ["${workspaceRoot}/out/client.js"],
 			"preLaunchTask": {
 				"type": "npm",

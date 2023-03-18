@@ -131,7 +131,7 @@ export class Parser {
             } else if (this.#checkAny(...exitTypes)) {
                 break;
             } else {
-                throw this.#error(this.#peek(), `Expected targeter, trigger or condition! Exit types: ${exitTypes.join(", ")}`);
+                throw this.#error(this.#peek(), `Expected targeter, trigger or condition! Source:${this.result.source} \n Exit types: ${exitTypes.join(", ")}.\nStack trace: ${new Error().stack}`);
             }
         }
 
@@ -256,7 +256,7 @@ export class Parser {
         let start = this.#current;
         // special case for inline skills
         // TODO this is a bit hacky, maybe find a better way to do this
-        if (this.#match("LeftSquareBracket") && ["skill", "skills", "s", "ot", "oh"].includes(key.lexeme?.toLowerCase() ?? "")) {
+        if (this.#match("LeftSquareBracket") && ["skill", "skills", "s", "ontick", "onhit", "onend", "ot", "oh", "oe"].includes(key.lexeme?.toLowerCase() ?? "")) {
             const inline = this.#inlineSkill();
             return inline;
         }
@@ -267,11 +267,11 @@ export class Parser {
                 parts.push(this.#placeholder());
                 start = this.#current;
             } else if (this.#match("LeftBrace")) {
-                while (!this.#check("RightBrace")) {
+                while (!this.#match("RightBrace")) {
                     this.#advance();
                 }
             } else if (this.#match("LeftSquareBracket")) {
-                while (!this.#check("RightSquareBracket")) {
+                while (!this.#match("RightSquareBracket")) {
                     this.#advance();
                 }
             } else {

@@ -14,8 +14,9 @@ export default async (params: TextDocumentChangeEvent<TextDocument>) => {
     // delay
     // await new Promise((resolve) => setTimeout(resolve, 5));
 
+    console.log(`Highlights:\n${info.highlights.map((h) => `${h.range} ${h.color.toCss()}`).join("\n")}`);
     server.connection.sendRequest(
         "vscode-mythic/highlight",
-        info.compileHighlights().map((highlight) => ({ ...highlight, color: highlight.color.toCss() })) ?? [],
+        info.highlights.map((highlight) => ({ ...highlight, color: highlight.color.toCss() })) ?? [],
     );
 };

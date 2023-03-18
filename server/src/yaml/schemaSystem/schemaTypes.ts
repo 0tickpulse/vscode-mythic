@@ -121,14 +121,16 @@ export class YamlSchemaArray extends YamlSchema {
             return Optional.of([new SchemaValidationError("Expected an array!", source, value)]);
         }
 
+        const errors: SchemaValidationError[] = [];
+
         for (const item of value.items) {
-            const errors = this.itemSchema.validateAndModify(doc, item as Node);
-            if (errors.isPresent()) {
-                return errors;
+            const innerErrors = this.itemSchema.validateAndModify(doc, item as Node);
+            if (innerErrors.isPresent()) {
+                errors.push(...innerErrors.get());
             }
         }
 
-        return Optional.empty();
+        return errors.length > 0 ? Optional.of(errors) : Optional.empty();
     }
 }
 export class YamlSchemaTuple extends YamlSchema {

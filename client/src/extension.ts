@@ -32,20 +32,22 @@ export async function activate(context: ExtensionContext) {
     } catch (e) {
         console.error(e);
     }
-
-    client.onRequest("vscode-mythic/highlight", (highlights: Highlight[]) => {
-        for (const highlight of highlights) {
-            const range = new Range(
-                new Position(highlight.range.start.line, highlight.range.start.character),
-                new Position(highlight.range.end.line, highlight.range.end.character),
-            );
-            const decorationType = window.createTextEditorDecorationType({
-                color: highlight.color,
-            });
-            const decoration = { range };
-            window.activeTextEditor?.setDecorations(decorationType, [decoration]);
-        }
-    });
+    context.subscriptions.push(
+        client.onRequest("vscode-mythic/highlight", (highlights: Highlight[]) => {
+            for (const highlight of highlights) {
+                const range = new Range(
+                    new Position(highlight.range.start.line, highlight.range.start.character),
+                    new Position(highlight.range.end.line, highlight.range.end.character),
+                );
+                const decorationType = window.createTextEditorDecorationType({
+                    color: highlight.color,
+                });
+                const decoration = { range };
+                window.activeTextEditor?.setDecorations(decorationType, [decoration]);
+            }
+        }),
+        client
+    );
 }
 
 export function log(msg: string) {

@@ -12,7 +12,8 @@ export class DocumentInfo {
     hovers: Hover[] = [];
     schema: Optional<YamlSchema> = Optional.empty();
     errors: Diagnostic[] = [];
-    highlights: Map<number, Color> = new Map();
+    // highlights: Map<number, Color> = new Map();
+    highlights: Highlight[] = [];
     constructor(public base: TextDocument, public yamlAst: Document, hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
         this.hovers = hovers ?? [];
         this.schema = Optional.of(schema);
@@ -28,41 +29,24 @@ export class DocumentInfo {
         this.errors.push(error);
     }
     addHighlights(...highlights: Highlight[]) {
-        highlights.forEach((highlight) => {
-            const start = highlight.range.start.toOffset(this.base.getText());
-            const end = highlight.range.end.toOffset(this.base.getText());
-            for (let i = start; i < end; i++) {
-                this.highlights.set(i, highlight.color);
-            }
-        });
-    }
-    compileHighlights(): Highlight[] {
-        const highlights: Highlight[] = [];
-        this.highlights.forEach((color, position) => {
-            const highlight = new Highlight(
-                new CustomRange(
-                    CustomPosition.fromOffset(this.base.getText(), position),
-                    CustomPosition.fromOffset(this.base.getText(), position + 1),
-                ),
-                color,
-            );
-            highlights.push(highlight);
-        });
-        return highlights;
+        this.highlights.push(...highlights);
     }
     getHoversAt(position: CustomPosition): Hover[] {
         return this.hovers.filter((hover) => r(hover.range!).contains(position));
     }
     removeAllHighlights() {
-        this.highlights.clear();
+        this.highlights = [];
     }
 }
 
 export function parse(document: TextDocument) {
     const source = document.getText();
-    const documentInfo = new DocumentInfo(document, parseDocument(source, {
-        lineCounter: new LineCounter(),
-    }));
+    const documentInfo = new DocumentInfo(
+        document,
+        parseDocument(source, {
+            lineCounter: new LineCounter(),
+        }),
+    );
     const { yamlAst } = documentInfo;
     const { contents } = yamlAst;
     if (contents === null) {
@@ -75,6 +59,30 @@ export function parse(document: TextDocument) {
             documentInfo.setSchema(schema);
         }
     });
+
+    const { schema } = documentInfo;
+    documentInfo.yamlAst.errors.forEach((error) =>
+        documentInfo.addError({
+            message: error.message,
+            range: new CustomRange(CustomPosition.fromOffset(source, error.pos[0]), CustomPosition.fromOffset(source, error.pos[1])),
+            severity: 1,
+            source: "Mythic Language Server",
+        }),
+    );
+    if (!schema.isEmpty()) {
+        console.log(`Schema found for ${document.uri}: ${schema.get().getDescription()}`);
+        const errors = schema.get().validateAndModify(documentInfo, yamlAst.contents!);
+        errors.otherwise([]).forEach(
+            (error) =>
+                error.range !== null &&
+                documentInfo.addError({
+                    message: error.message,
+                    range: error.range,
+                    severity: 1,
+                    source: "Mythic Language Server",
+                }),
+        );
+    }
 
     // syntax highlighting
     visit(yamlAst, {
@@ -89,27 +97,5 @@ export function parse(document: TextDocument) {
         },
     });
 
-    const { schema } = documentInfo;
-    documentInfo.yamlAst.errors.forEach((error) =>
-        documentInfo.addError({
-            message: error.message,
-            range: new CustomRange(CustomPosition.fromOffset(source, error.pos[0]), CustomPosition.fromOffset(source, error.pos[1])),
-            severity: 1,
-            source: "Mythic Language Server",
-        }),
-    );
-    if (schema.isEmpty()) {
-        return documentInfo;
-    }
-    console.log(`Schema found for ${document.uri}: ${schema.get().getDescription()}`);
-    const errors = schema.get().validateAndModify(documentInfo, yamlAst.contents!);
-    errors.otherwise([]).forEach((error) =>
-        error.range && documentInfo.addError({
-            message: error.message,
-            range: error.range,
-            severity: 1,
-            source: "Mythic Language Server",
-        }),
-    );
     return documentInfo;
 }
