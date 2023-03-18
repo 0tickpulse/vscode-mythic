@@ -5,6 +5,5 @@ export default () => ({
             resolveProvider: true,
             triggerCharacters: ["@", "?", "~"],
         },
-        documentHighlightProvider: true,
     },
 });

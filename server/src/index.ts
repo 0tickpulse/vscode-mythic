@@ -19,6 +19,8 @@ function main() {
     connection.onInitialize(initializeService);
     connection.onHover(hover);
     manager.onDidChangeContent(didChangeContentService);
+    manager.onDidOpen(didChangeContentService);
+    manager.onDidSave(didChangeContentService);
     manager.listen(server.connection);
 }
 
