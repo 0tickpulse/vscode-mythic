@@ -37,8 +37,8 @@
         "languages": [
             {
                 "icon": {
-                    "light": "./icons/mythicicon.png",
-                    "dark": "./icons/mythicicon.png"
+                    "light": "./assets/mythicicon.png",
+                    "dark": "./assets/mythicicon.png"
                 },
                 "id": "mythic",
                 "aliases": [
