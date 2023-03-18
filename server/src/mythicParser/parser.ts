@@ -322,7 +322,7 @@ export class Parser {
             // optional whitespace
             this.#consumeWhitespace();
             // skill
-            const skill = this.#skillLine("RightSquareBracket");
+            const skill = this.#skillLine("RightSquareBracket", "Dash");
 
             // optional whitespace
             this.#consumeWhitespace();
