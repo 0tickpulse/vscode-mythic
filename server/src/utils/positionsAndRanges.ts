@@ -47,7 +47,6 @@ export class CustomPosition implements Comparable<CustomPosition> {
     }
     addOffset(source: string, offset: number) {
         const result = CustomPosition.fromOffset(source, this.toOffset(source) + offset);
-        console.log(`${this} + ${offset} = ${result}`);
         return result;
     }
 

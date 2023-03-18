@@ -23,10 +23,6 @@ export class Highlighter extends ExprVisitor<void> {
         super();
         this.#characters.clear();
         ast.accept(this);
-        console.log(`New highlight created. Characters:`);
-        for (const [position, { character, color }] of this.#characters) {
-            console.log(`${position} -> character=${character}, color=${color.toCss()}`);
-        }
     }
     #setCharacters(start: CustomPosition, str: string, color: Color) {
         for (let i = 0; i < str.length; i++) {
@@ -71,7 +67,6 @@ export class Highlighter extends ExprVisitor<void> {
     }
 
     highlight(doc: DocumentInfo, initialOffset: CustomRange) {
-        const source = doc.base.getText();
         for (const [position, { color }] of this.#characters) {
             const range = r(position, position.addOffset(this.ast.getSource(), 1)).add(initialOffset.start);
             const highlight: Highlight = new Highlight(range, color);

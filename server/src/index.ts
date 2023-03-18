@@ -2,7 +2,6 @@ import { ProposedFeatures, createConnection } from "vscode-languageserver/node.j
 import { documents } from "./documentManager.js";
 import didChangeContentService from "./services/didChangeContentService.js";
 import initializeService from "./services/initializeService.js";
-import syntaxHighlightService from "./services/syntaxHighlightService.js";
 import { hover } from "./services/hoverService.js";
 
 export const server = {
@@ -18,7 +17,6 @@ function main() {
     console.log(`Successfully connected!`);
     connection.listen();
     connection.onInitialize(initializeService);
-    connection.onRequest("vscode-mythic/highlight", syntaxHighlightService);
     connection.onHover(hover);
     manager.onDidChangeContent(didChangeContentService);
     manager.listen(server.connection);

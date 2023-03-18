@@ -29,7 +29,6 @@ export class DocumentInfo {
     }
     addHighlights(...highlights: Highlight[]) {
         highlights.forEach((highlight) => {
-            console.log(`Adding highlight from ${highlight.range.start} to ${highlight.range.end} with ${highlight.color.toCss()}`);
             const start = highlight.range.start.toOffset(this.base.getText());
             const end = highlight.range.end.toOffset(this.base.getText());
             for (let i = start; i < end; i++) {
@@ -38,10 +37,6 @@ export class DocumentInfo {
         });
     }
     compileHighlights(): Highlight[] {
-        console.log(`Highlights:`);
-        for (const [position, color] of this.highlights) {
-            console.log(`${position} -> ${color.toCss()}`);
-        }
         const highlights: Highlight[] = [];
         this.highlights.forEach((color, position) => {
             const highlight = new Highlight(
@@ -51,13 +46,15 @@ export class DocumentInfo {
                 ),
                 color,
             );
-            console.log(`Highlighting ${highlight.range.start} to ${highlight.range.end} with ${color.toCss()}`);
             highlights.push(highlight);
         });
         return highlights;
     }
     getHoversAt(position: CustomPosition): Hover[] {
         return this.hovers.filter((hover) => r(hover.range!).contains(position));
+    }
+    removeAllHighlights() {
+        this.highlights.clear();
     }
 }
 

@@ -8,7 +8,12 @@ import { generateHover, getAllMechanicsAndAliases, getHolderFromName } from "../
 import { getClosestTo } from "../../utils/utils.js";
 
 export class SchemaValidationError {
-    constructor(public message: string, public source: string, public node: Node, public range = node !== null ? CustomRange.fromYamlRange(source, node.range!) : null) {}
+    constructor(
+        public message: string,
+        public source: string,
+        public node: Node,
+        public range = node !== null ? CustomRange.fromYamlRange(source, node.range!) : null,
+    ) {}
 }
 
 export abstract class YamlSchema {
@@ -298,8 +303,11 @@ export class YamlSchemaMythicSkill extends YamlSchema {
         }
 
         let rangeOffset = CustomRange.fromYamlRange(source, value.range!);
-        const skillLine = source
-            .substring(value.range![0], value.range![2])
+        if (value.type === "QUOTE_DOUBLE" || value.type === "QUOTE_SINGLE") {
+            rangeOffset = rangeOffset.addOffsetToStart(source, 1).addOffsetToEnd(source, -1);
+        }
+        const skillLine = rangeOffset
+            .getFrom(source)
             .split("\n")
             .map((line, index) => {
                 if (index !== 0) {
@@ -308,13 +316,10 @@ export class YamlSchemaMythicSkill extends YamlSchema {
                 return line;
             })
             .join("\n");
-        // const skillLine = value.value as string;
-        console.log(`skillLine: ${skillLine}`);
+
+        console.log(`Skillline: ${skillLine}`);
 
         const ast = getAst(skillLine);
-        if (value.type === "QUOTE_DOUBLE" || value.type === "QUOTE_SINGLE") {
-            rangeOffset = rangeOffset.addOffsetToStart(source, 1).addOffsetToEnd(source, -1);
-        }
         if (ast.hasErrors()) {
             return Optional.of(
                 ast.errors!.map((error) => new SchemaValidationError(error.message, source, value, error.range.add(rangeOffset.start))),
