@@ -1,0 +1,6 @@
+
+# Generated documentation
+docs/
+**/out/
+**/node_modules/
+
