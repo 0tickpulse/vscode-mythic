@@ -34,7 +34,6 @@ export async function activate(context: ExtensionContext) {
     }
 
     client.onRequest("vscode-mythic/highlight", (highlights: Highlight[]) => {
-        window.showInformationMessage(`Client received highlight request!`)
         for (const highlight of highlights) {
             const range = new Range(
                 new Position(highlight.range.start.line, highlight.range.start.character),
