@@ -26,15 +26,12 @@ export async function activate(context: ExtensionContext) {
 
     client = new LanguageClient("mythicLanguageServer", "Mythic Language Server", serverOptions, clientOptions);
 
-    try {
-        await client.start();
-        log("Server started!");
-    } catch (e) {
-        console.error(e);
-    }
+    client.start();
+    log("Server started!");
     context.subscriptions.push(
         client.onRequest("vscode-mythic/highlight", (highlights: Highlight[]) => {
-            for (const highlight of highlights) {
+            log(`Received highlight request from server...`);
+            highlights.forEach((highlight) => {
                 const range = new Range(
                     new Position(highlight.range.start.line, highlight.range.start.character),
                     new Position(highlight.range.end.line, highlight.range.end.character),
@@ -44,9 +41,9 @@ export async function activate(context: ExtensionContext) {
                 });
                 const decoration = { range };
                 window.activeTextEditor?.setDecorations(decorationType, [decoration]);
-            }
+            });
         }),
-        client
+        client,
     );
 }
 

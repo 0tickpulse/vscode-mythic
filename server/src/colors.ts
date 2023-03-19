@@ -45,9 +45,12 @@ export const COLORS = {
     healthModifier: new Color(255, 193, 7),
 } satisfies Record<PropertyKey, Color>;
 
-export class Highlight {
-    color: Color;
-    public constructor(public range: CustomRange, color: Color | keyof typeof COLORS) {
-        this.color = typeof color === "string" ? COLORS[color] : color;
+/**
+ * @template ColorFormat The format the color takes. Color is a RGB color, string is a CSS color.
+ */
+export class Highlight<ColorFormat extends Color | string = Color> {
+    color: ColorFormat;
+    public constructor(public range: CustomRange, color: ColorFormat) {
+        this.color = color;
     }
 }

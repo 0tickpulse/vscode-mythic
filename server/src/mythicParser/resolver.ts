@@ -1,7 +1,14 @@
-
 import { VARIABLE_SCOPES, data, typedData } from "../minecraftData/data.js";
 import { MythicField, MythicHolder } from "../minecraftData/models.js";
-import { getAllMechanicsAndAliases, getAllFieldNames, getHolderFromName, getHolderFieldFromName, validate, MechanicsAndAliases } from "../minecraftData/services.js";
+import {
+    getAllMechanicsAndAliases,
+    getAllFieldNames,
+    getHolderFromName,
+    getHolderFieldFromName,
+    validate,
+    MechanicsAndAliases,
+    generateHover,
+} from "../minecraftData/services.js";
 import { ResolverError, UnknownMechanicResolverError } from "../errors.js";
 import {
     Expr,
@@ -17,25 +24,45 @@ import {
     MlcValueExpr,
     SkillLineExpr,
     TargeterExpr,
-    TriggerExpr
+    TriggerExpr,
 } from "./parserExpressions.js";
 import { MythicToken } from "./scanner.js";
+import { Hover } from "vscode-languageserver";
+import { DocumentInfo } from "../yaml/parser/parser.js";
+import { CustomRange, r } from "../utils/positionsAndRanges.js";
+import { Optional } from "tick-ts-utils";
 
 export class Resolver extends ExprVisitor<void> {
     #source: string = "";
+    #hovers: Hover[] = [];
     #errors: ResolverError[] = [];
     #skillVariables: Map<string, MlcValueExpr | SkillLineExpr> = new Map();
     #currentSkill: SkillLineExpr | undefined = undefined;
-    constructor(public expr: SkillLineExpr) {
+    #expr: Optional<Expr> = Optional.empty();
+    constructor() {
         super();
-        this.#source = expr.parser.result.source ?? "";
+    }
+    setAst(expr: Expr) {
+        this.#expr = Optional.of(expr);
+        this.#source = expr.parser.result.source;
+    }
+    resolveWithDoc(doc: DocumentInfo, initialOffset: CustomRange) {
+        this.#hovers = [];
+        this.#errors = [];
+        this.resolve();
+        this.#hovers.forEach((hover) => {
+            doc.addHover({...hover, range: r(hover.range!).add(initialOffset.start)});
+        });
+        this.#errors.forEach((error) => {
+            doc.addError({...error.toDiagnostic(), range: r(error.range!).add(initialOffset.start)});
+        });
     }
     resolve() {
         this.#resolveExpr();
 
         return this.#errors;
     }
-    #resolveExpr(expr: Expr | null | undefined = this.expr): void {
+    #resolveExpr(expr: Expr | null | undefined = this.#expr.get()): void {
         if (expr === null) {
             return;
         }
@@ -53,28 +80,35 @@ export class Resolver extends ExprVisitor<void> {
         this.#currentSkill = undefined;
     }
     override visitMechanicExpr(mechanic: MechanicExpr): void {
-        if (!getAllMechanicsAndAliases().includes(mechanic.identifier.value())) {
+        const mechanicName = mechanic.identifier.value();
+        if (!getAllMechanicsAndAliases().includes(mechanicName)) {
             this.#errors.push(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill));
             return;
         }
+
+        this.#hovers.push({
+            ...generateHover("mechanic", mechanicName, getHolderFromName("mechanic", mechanicName).get()),
+            range: mechanic.getNameRange(),
+        });
+
         /** Whether to keep resolving */
         let keepResolving = true;
-        const mechanicData: MythicHolder = getHolderFromName("mechanic", mechanic.identifier.value()).get();
+        const mechanicData: MythicHolder = getHolderFromName("mechanic", mechanicName).get();
         if (mechanicData.fields !== undefined) {
-            const fieldsAndAliases = getAllFieldNames("mechanic", mechanic.identifier.value());
+            const fieldsAndAliases = getAllFieldNames("mechanic", mechanicName);
             for (const [key, arg] of mechanic.mlcsToTokenMap()) {
                 if (!fieldsAndAliases.includes(key.lexeme ?? "")) {
-                    this.#addError(`Unknown field '${key.lexeme ?? ""}' for mechanic '${mechanic.identifier.value()}'`, arg, arg.getRange().withStart(key.getRange().start));
+                    this.#addError(
+                        `Unknown field '${key.lexeme ?? ""}' for mechanic '${mechanicName}'`,
+                        arg,
+                        arg.getRange().withStart(key.getRange().start),
+                    );
                 }
                 this.#resolveExpr(arg);
             }
             for (const [name, { required }] of Object.entries(mechanicData.fields)) {
                 if (required && !fieldsAndAliases.some((value) => mechanic.mlcsToMap().has(value))) {
-                    this.#addError(
-                        `Missing required field '${name}' for mechanic '${mechanic.identifier.value()}'`,
-                        mechanic,
-                        mechanic.getNameRange()
-                    );
+                    this.#addError(`Missing required field '${name}' for mechanic '${mechanicName}'`, mechanic, mechanic.getNameRange());
                     keepResolving = false;
                 }
             }
@@ -92,14 +126,17 @@ export class Resolver extends ExprVisitor<void> {
                     continue;
                 }
                 const value = arg.identifiers.map((value) => (value as MythicToken[]).map((token) => token.lexeme)).join("");
-                const field = getHolderFieldFromName(mechanicData, key).get();
+                const field = getHolderFieldFromName(mechanicData, key).otherwise(undefined);
+                if (field === undefined) {
+                    continue;
+                }
                 const type = field.type;
                 const validationResults = validate(type, arg);
                 if (validationResults.length > 0) {
                     this.#addError(
-                        `Invalid value '${value}' for field '${key}' of mechanic '${mechanic.identifier.value()}'. ${validationResults.join(" ")}`,
+                        `Invalid value '${value}' for field '${key}' of mechanic '${mechanicName}'. ${validationResults.join(" ")}`,
                         arg,
-                        arg.getRange()
+                        arg.getRange(),
                     );
                 }
             }
@@ -109,7 +146,7 @@ export class Resolver extends ExprVisitor<void> {
             return;
         }
 
-        if (getHolderFromName("mechanic", "variableSet").get().names.includes(mechanic.identifier.value())) {
+        if (getHolderFromName("mechanic", "variableSet").get().names.includes(mechanicName)) {
             let name: string;
             let scope: string;
             try {
@@ -145,7 +182,7 @@ export class Resolver extends ExprVisitor<void> {
             if (expr[1].trigger !== undefined) {
                 this.#addError("Inline skills cannot have triggers", expr[1].trigger);
             }
-            this.#resolveExpr(expr[1]);
+            this.#resolveExpr(expr[1]); 
         }
     }
     override visitHealthModifierExpr(healthModifier: HealthModifierExpr): void {}
@@ -153,11 +190,7 @@ export class Resolver extends ExprVisitor<void> {
     #addError(message: string, expr: Expr, range = expr.getRange()) {
         this.#errors.push(new ResolverError(this.#source, message, expr, range, this.#currentSkill));
     }
-    getFieldFromMlc(
-        mlc: ExprWithMlcs,
-        mechanic: string,
-        field: string
-    ) {
+    getFieldFromMlc(mlc: ExprWithMlcs, mechanic: string, field: string) {
         let mlcValue = mlc.mlcsToMap().get(field.toString());
         for (const alias of getHolderFieldFromName(getHolderFromName("mechanic", mechanic).get(), field).get().names) {
             mlcValue ??= mlc.mlcsToMap().get(alias);

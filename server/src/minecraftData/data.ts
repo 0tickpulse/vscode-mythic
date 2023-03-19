@@ -12,6 +12,10 @@ export const data = {
             names: ["orbital", "o"],
             description: "Applies an orbital aura to the target.",
         },
+        {
+            names: ["variableSet"],
+            description: "Sets a variable to a value.",
+        }
     ],
     condition: [],
     targeter: [],

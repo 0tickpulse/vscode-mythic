@@ -1,4 +1,4 @@
-import { Optional } from "tick-ts-utils";
+import { Optional, stripIndentation } from "tick-ts-utils";
 import { Node, isCollection, isMap, isScalar } from "yaml";
 import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import { getAst } from "../../mythicParser/main.js";
@@ -6,6 +6,7 @@ import { DocumentInfo } from "../parser/parser.js";
 import { Highlighter } from "../../mythicParser/highlighter.js";
 import { generateHover, getAllMechanicsAndAliases, getHolderFromName } from "../../minecraftData/services.js";
 import { getClosestTo } from "../../utils/utils.js";
+import { Resolver } from "../../mythicParser/resolver.js";
 
 export class SchemaValidationError {
     constructor(
@@ -44,6 +45,9 @@ export class YamlSchemaString extends YamlSchema {
             return Optional.of([new SchemaValidationError("Expected a string!", source, value)]);
         }
         return Optional.empty();
+    }
+    toString() {
+        return "string";
     }
 }
 export class YamlSchemaNumber extends YamlSchema {
@@ -88,6 +92,13 @@ export class YamlSchemaNumber extends YamlSchema {
         }
         return Optional.empty();
     }
+    toString() {
+        let res = this.isInteger ? "integer" : "number";
+        if (this.lowerBound !== undefined || this.upperBound !== undefined) {
+            res += `(${this.lowerBound?.toString() ?? "-∞"}, ${this.upperBound?.toString() ?? "∞"})`;
+        }
+        return res;
+    }
 }
 export class YamlSchemaBoolean extends YamlSchema {
     override getDescription() {
@@ -103,6 +114,9 @@ export class YamlSchemaBoolean extends YamlSchema {
         }
         return Optional.empty();
     }
+    toString() {
+        return "boolean";
+    }
 }
 export class YamlSchemaArray extends YamlSchema {
     constructor(public itemSchema: YamlSchema) {
@@ -116,6 +130,10 @@ export class YamlSchemaArray extends YamlSchema {
         return `an array in which items are each '${this.itemSchema.getDescription()}'`;
     }
     override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+        if (this.itemSchema instanceof YamlSchemaMythicSkill) {
+            this.itemSchema.resolver = Optional.of(new Resolver());
+        }
+
         const source = doc.base.getText();
         if (!isCollection(value)) {
             return Optional.of([new SchemaValidationError("Expected an array!", source, value)]);
@@ -123,14 +141,17 @@ export class YamlSchemaArray extends YamlSchema {
 
         const errors: SchemaValidationError[] = [];
 
-        for (const item of value.items) {
+        value.items.forEach((item) => {
             const innerErrors = this.itemSchema.validateAndModify(doc, item as Node);
             if (innerErrors.isPresent()) {
                 errors.push(...innerErrors.get());
             }
-        }
+        });
 
         return errors.length > 0 ? Optional.of(errors) : Optional.empty();
+    }
+    toString() {
+        return `array(${this.itemSchema.toString()})`;
     }
 }
 export class YamlSchemaTuple extends YamlSchema {
@@ -163,6 +184,9 @@ export class YamlSchemaTuple extends YamlSchema {
     setItemSchema(itemSchema: YamlSchema[]) {
         this.itemSchema = itemSchema;
         return this;
+    }
+    toString() {
+        return `tuple(${this.itemSchema.map((schema) => schema.toString()).join(", ")})`;
     }
 }
 export class YamlSchemaObject extends YamlSchema {
@@ -202,17 +226,32 @@ export class YamlSchemaObject extends YamlSchema {
         const errors: SchemaValidationError[] = [];
 
         // iterate over schema
-        for (const [key, { schema, required }] of Object.entries(this.properties)) {
+        for (const [key, { schema, required, description }] of Object.entries(this.properties)) {
             const item = items.find((i) => {
                 if (i.key === null) {
                     return false;
                 }
                 return (i.key as any).value === key;
             }) as { key: Node; value: Node } | undefined;
-            if (item && item.value !== null) {
-                const error = schema.validateAndModify(doc, item.value);
-                if (error.isPresent()) {
-                    errors.push(...error.get());
+            if (item) {
+                if (item.value !== null) {
+                    const error = schema.validateAndModify(doc, item.value);
+                    if (error.isPresent()) {
+                        errors.push(...error.get());
+                    }
+                }
+                if (item.key !== null && description) {
+                    const range = item.key.range;
+                    if (range) {
+                        const customRange = CustomRange.fromYamlRange(source, range);
+                        customRange &&
+                            doc.addHover({
+                                range: customRange,
+                                contents: stripIndentation`Property \`${key}\`: \`${schema.toString()}\`
+
+                                ${description}`,
+                            });
+                    }
                 }
             } else if (required) {
                 return Optional.of([new SchemaValidationError(`Missing required property "${key}"!`, source, value)]);
@@ -238,6 +277,11 @@ export class YamlSchemaObject extends YamlSchema {
         }
 
         return errors.length > 0 ? Optional.of(errors) : Optional.empty();
+    }
+    toString() {
+        return `object(${Object.entries(this.properties)
+            .map(([key, { schema }]) => `${key}: ${schema.toString()}`)
+            .join(", ")})`;
     }
 }
 export class YamlSchemaMap extends YamlSchema {
@@ -290,8 +334,12 @@ export class YamlSchemaUnion extends YamlSchema {
         }
         return Optional.of([new SchemaValidationError(`Expected ${this.getDescription()}`, source, value)]);
     }
+    toString() {
+        return `${this.items.map((item) => item.toString()).join(" | ")}`;
+    }
 }
 export class YamlSchemaMythicSkill extends YamlSchema {
+    resolver: Optional<Resolver> = Optional.empty();
     constructor(public supportsTriggers = true) {
         super();
     }
@@ -319,8 +367,6 @@ export class YamlSchemaMythicSkill extends YamlSchema {
             })
             .join("\n");
 
-        console.log(`Skillline: ${skillLine}`);
-
         const ast = getAst(skillLine);
         if (ast.hasErrors()) {
             return Optional.of(
@@ -329,17 +375,15 @@ export class YamlSchemaMythicSkill extends YamlSchema {
         }
 
         new Highlighter(ast.skillLine!).highlight(doc, rangeOffset);
-
-        const mechanic = ast.getSkillLineOrThrow().mechanic;
-        const mechanicName = mechanic.identifier.value();
-        if (getAllMechanicsAndAliases().includes(mechanicName)) {
-            doc.addHover({
-                ...generateHover("mechanic", mechanicName, getHolderFromName("mechanic", mechanicName).get()),
-                range: mechanic.getNameRange().add(rangeOffset.start),
-            });
-        }
+        this.resolver.ifPresent((r) => {
+            r.setAst(ast.skillLine!);
+            r.resolveWithDoc(doc, rangeOffset);
+        });
 
         return Optional.empty();
+    }
+    toString() {
+        return "skill";
     }
 }
 // TODO
@@ -354,6 +398,9 @@ export class YamlSchemaMythicItem extends YamlSchema {
         const source = doc.base.getText();
         return Optional.empty();
     }
+    toString() {
+        return "item";
+    }
 }
 // TODO
 export class YamlSchemaMythicCondition extends YamlSchema {
@@ -366,5 +413,8 @@ export class YamlSchemaMythicCondition extends YamlSchema {
     override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
         const source = doc.base.getText();
         return Optional.empty();
+    }
+    toString() {
+        return "condition";
     }
 }

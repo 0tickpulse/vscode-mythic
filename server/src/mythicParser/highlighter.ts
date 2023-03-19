@@ -32,7 +32,7 @@ export class Highlighter extends ExprVisitor<void> {
     }
     highlight(doc: DocumentInfo, initialOffset: CustomRange) {
         this.#characters.forEach((color, range) => {
-            doc.addHighlights(new Highlight(range.add(initialOffset.start), color));
+            doc.addHighlights(new Highlight(range.add(initialOffset.start), color.toCss()));
         });
     }
 

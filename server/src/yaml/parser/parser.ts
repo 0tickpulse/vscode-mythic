@@ -13,7 +13,7 @@ export class DocumentInfo {
     schema: Optional<YamlSchema> = Optional.empty();
     errors: Diagnostic[] = [];
     // highlights: Map<number, Color> = new Map();
-    highlights: Highlight[] = [];
+    #highlights: Highlight<string>[] = [];
     constructor(public base: TextDocument, public yamlAst: Document, hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
         this.hovers = hovers ?? [];
         this.schema = Optional.of(schema);
@@ -28,14 +28,18 @@ export class DocumentInfo {
     addError(error: Diagnostic) {
         this.errors.push(error);
     }
-    addHighlights(...highlights: Highlight[]) {
-        this.highlights.push(...highlights);
+    addHighlights(...highlights: Highlight<string>[]) {
+        // add to the beginning
+        this.#highlights.unshift(...highlights);
+    }
+    get highlights() {
+        return this.#highlights;
     }
     getHoversAt(position: CustomPosition): Hover[] {
         return this.hovers.filter((hover) => r(hover.range!).contains(position));
     }
     removeAllHighlights() {
-        this.highlights = [];
+        this.#highlights = [];
     }
 }
 
@@ -58,6 +62,19 @@ export function parse(document: TextDocument) {
             console.log(`Matched ${document.uri} against ${pathMatcher}`);
             documentInfo.setSchema(schema);
         }
+    });
+
+    // syntax highlighting
+    visit(yamlAst, {
+        Scalar(key, node) {
+            if (key === "key") {
+                documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, node.range!), COLORS["yamlKey"].toCss()));
+                return;
+            }
+            const { value, range } = node;
+            const color: keyof typeof COLORS = !isNaN(Number(value)) ? "yamlValueNumber" : "yamlValue";
+            documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), COLORS[color].toCss()));
+        },
     });
 
     const { schema } = documentInfo;
@@ -83,19 +100,6 @@ export function parse(document: TextDocument) {
                 }),
         );
     }
-
-    // syntax highlighting
-    visit(yamlAst, {
-        Scalar(key, node) {
-            if (key === "key") {
-                documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, node.range!), "yamlKey"));
-                return;
-            }
-            const { value, range } = node;
-            const color: keyof typeof COLORS = !isNaN(Number(value)) ? "yamlValueNumber" : "yamlValue";
-            documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), color));
-        },
-    });
 
     return documentInfo;
 }

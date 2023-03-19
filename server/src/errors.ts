@@ -18,7 +18,6 @@ export class SyntaxError extends Error {
         public readonly code = 0,
     ) {
         super();
-        this.message = message + `\n at '${range.getFrom(source)}'`;
     }
     toDiagnostic(): Diagnostic {
         const diagnostic: Diagnostic = {
@@ -26,7 +25,7 @@ export class SyntaxError extends Error {
             range: this.range,
             severity: this.#severity,
             code: this.code,
-            source: "Mythic Interpreter",
+            source: "Mythic Language Server",
         };
         return diagnostic;
     }
@@ -49,9 +48,6 @@ export class InvalidFieldValueError extends SyntaxError {
 export class ResolverError extends SyntaxError {
     constructor(source: string, message: string, expr: Expr, range = expr.getRange(), skill?: SkillLineExpr, code = 0) {
         super(range, source, message, undefined, code);
-        if (skill !== undefined) {
-            this.message += `\n in skill '${skill.getRange().getFrom(source)}'`;
-        }
     }
 }
 
@@ -63,7 +59,7 @@ export class UnknownMechanicResolverError extends ResolverError {
         if (closest !== undefined) {
             message += `. Did you mean '${closest}'?`;
         }
-        super(source, message, mechanic, mechanic.getRange(), skill, 1);
+        super(source, message, mechanic, mechanic.getNameRange(), skill, 1);
         this.setCodeDescription("unknown-mechanic");
         this.setSeverity(DiagnosticSeverity.Error);
     }
