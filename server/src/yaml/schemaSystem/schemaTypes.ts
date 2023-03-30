@@ -3,7 +3,6 @@ import { Node, isCollection, isMap, isScalar } from "yaml";
 import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import { getAst } from "../../mythicParser/main.js";
 import { DocumentInfo } from "../parser/parser.js";
-import { Highlighter } from "../../mythicParser/highlighter.js";
 import { generateHover, getAllMechanicsAndAliases, getHolderFromName } from "../../minecraftData/services.js";
 import { getClosestTo } from "../../utils/utils.js";
 import { Resolver } from "../../mythicParser/resolver.js";
@@ -374,7 +373,6 @@ export class YamlSchemaMythicSkill extends YamlSchema {
             );
         }
 
-        new Highlighter(ast.skillLine!).highlight(doc, rangeOffset);
         this.resolver.ifPresent((r) => {
             r.setAst(ast.skillLine!);
             r.resolveWithDoc(doc, rangeOffset);

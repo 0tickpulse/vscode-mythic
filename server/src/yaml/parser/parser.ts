@@ -1,9 +1,9 @@
 import picomatch from "picomatch";
 import { Optional } from "tick-ts-utils";
-import { Diagnostic, Hover } from "vscode-languageserver";
+import { Diagnostic, Hover, SemanticTokenTypes } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Document, LineCounter, parseDocument, visit } from "yaml";
-import { COLORS, Color, Highlight } from "../../colors.js";
+import { Highlight } from "../../colors.js";
 import { CustomPosition, CustomRange, r } from "../../utils/positionsAndRanges.js";
 import { PATH_MAP } from "../schemaSystem/data.js";
 import { YamlSchema } from "../schemaSystem/schemaTypes.js";
@@ -13,7 +13,7 @@ export class DocumentInfo {
     schema: Optional<YamlSchema> = Optional.empty();
     errors: Diagnostic[] = [];
     // highlights: Map<number, Color> = new Map();
-    #highlights: Highlight<string>[] = [];
+    #highlights: Highlight[] = [];
     constructor(public base: TextDocument, public yamlAst: Document, hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
         this.hovers = hovers ?? [];
         this.schema = Optional.of(schema);
@@ -28,8 +28,11 @@ export class DocumentInfo {
     addError(error: Diagnostic) {
         this.errors.push(error);
     }
-    addHighlights(...highlights: Highlight<string>[]) {
-        // add to the beginning
+    addHighlights(...highlights: Highlight[]) {
+        // console.log("Adding highlights", highlights.map((h) => JSON.stringify({
+        //     range: h.range.toString(),
+        //     color: h.color.toString(),
+        // })));
         this.#highlights.unshift(...highlights);
     }
     get highlights() {
@@ -56,10 +59,9 @@ export function parse(document: TextDocument) {
     if (contents === null) {
         return documentInfo;
     }
+
     PATH_MAP.forEach((schema, pathMatcher) => {
-        console.log(`Checking ${document.uri} against ${pathMatcher}`);
         if (picomatch(pathMatcher)(document.uri)) {
-            console.log(`Matched ${document.uri} against ${pathMatcher}`);
             documentInfo.setSchema(schema);
         }
     });
@@ -68,13 +70,26 @@ export function parse(document: TextDocument) {
     visit(yamlAst, {
         Scalar(key, node) {
             if (key === "key") {
-                documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, node.range!), COLORS["yamlKey"].toCss()));
+                documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, node.range!), SemanticTokenTypes.property));
                 return;
             }
             const { value, range } = node;
-            const color: keyof typeof COLORS = !isNaN(Number(value)) ? "yamlValueNumber" : "yamlValue";
-            documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), COLORS[color].toCss()));
+            const color: SemanticTokenTypes = !isNaN(Number(value)) ? SemanticTokenTypes.number : SemanticTokenTypes.string;
+            documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), color));
         },
+    });
+
+    source.split("\n").forEach((line, index) => {
+        // index of #
+        const commentIndex = line.indexOf("#");
+        if (commentIndex !== -1) {
+            documentInfo.addHighlights(
+                new Highlight(
+                    new CustomRange(new CustomPosition(index, commentIndex), new CustomPosition(index, line.length)),
+                    SemanticTokenTypes.comment,
+                ),
+            );
+        }
     });
 
     const { schema } = documentInfo;
@@ -87,7 +102,7 @@ export function parse(document: TextDocument) {
         }),
     );
     if (!schema.isEmpty()) {
-        console.log(`Schema found for ${document.uri}: ${schema.get().getDescription()}`);
+        // console.log(`Schema found for ${document.uri}: ${schema.get().getDescription()}`);
         const errors = schema.get().validateAndModify(documentInfo, yamlAst.contents!);
         errors.otherwise([]).forEach(
             (error) =>

@@ -10,5 +10,5 @@ export const documents = {
     },
     set(doc: DocumentInfo) {
         this.list.set(doc.base.uri, doc);
-    }
+    },
 };

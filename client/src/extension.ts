@@ -28,23 +28,6 @@ export async function activate(context: ExtensionContext) {
 
     client.start();
     log("Server started!");
-    context.subscriptions.push(
-        client.onRequest("vscode-mythic/highlight", (highlights: Highlight[]) => {
-            log(`Received highlight request from server...`);
-            highlights.forEach((highlight) => {
-                const range = new Range(
-                    new Position(highlight.range.start.line, highlight.range.start.character),
-                    new Position(highlight.range.end.line, highlight.range.end.character),
-                );
-                const decorationType = window.createTextEditorDecorationType({
-                    color: highlight.color,
-                });
-                const decoration = { range };
-                window.activeTextEditor?.setDecorations(decorationType, [decoration]);
-            });
-        }),
-        client,
-    );
 }
 
 export function log(msg: string) {

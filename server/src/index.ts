@@ -1,8 +1,9 @@
-import { ProposedFeatures, createConnection } from "vscode-languageserver/node.js";
+import { ProposedFeatures, SemanticTokenTypes, createConnection } from "vscode-languageserver/node.js";
 import { documents } from "./documentManager.js";
 import didChangeContentService from "./services/didChangeContentService.js";
 import initializeService from "./services/initializeService.js";
 import { hover } from "./services/hoverService.js";
+import semanticTokensService from "./services/semanticTokensService.js";
 
 export const server = {
     connection: createConnection(ProposedFeatures.all),
@@ -18,9 +19,10 @@ function main() {
     connection.listen();
     connection.onInitialize(initializeService);
     connection.onHover(hover);
+    connection.languages.semanticTokens.on(semanticTokensService);
     manager.onDidChangeContent(didChangeContentService);
     manager.onDidOpen(didChangeContentService);
-    manager.onDidSave(didChangeContentService);
+    // manager.onDidSave(didChangeContentService);
     manager.listen(server.connection);
 }
 
