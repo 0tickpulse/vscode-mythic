@@ -18,7 +18,7 @@ export class SchemaValidationError {
 
 export abstract class YamlSchema {
     abstract getDescription(): string;
-    abstract validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]>;
+    abstract validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[];
 }
 
 export class YamlSchemaString extends YamlSchema {
@@ -38,12 +38,12 @@ export class YamlSchemaString extends YamlSchema {
     override getDescription() {
         return this.literal.map((literal) => `"${literal}"`).otherwise("a string");
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isScalar(value)) {
-            return Optional.of([new SchemaValidationError("Expected a string!", source, value)]);
+            return [new SchemaValidationError("Expected a string!", source, value)];
         }
-        return Optional.empty();
+        return [];
     }
     toString() {
         return "string";
@@ -81,15 +81,15 @@ export class YamlSchemaNumber extends YamlSchema {
         }
         return type;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isScalar(value)) {
-            return Optional.of([new SchemaValidationError("Expected a number!", source, value)]);
+            return [new SchemaValidationError("Expected a number!", source, value)];
         }
         if (isNaN(Number(value.value))) {
-            return Optional.of([new SchemaValidationError("Expected a number!", source, value)]);
+            return [new SchemaValidationError("Expected a number!", source, value)];
         }
-        return Optional.empty();
+        return [];
     }
     toString() {
         let res = this.isInteger ? "integer" : "number";
@@ -103,15 +103,15 @@ export class YamlSchemaBoolean extends YamlSchema {
     override getDescription() {
         return "a boolean";
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isScalar(value)) {
-            return Optional.of([new SchemaValidationError("Expected a boolean!", source, value)]);
+            return [new SchemaValidationError("Expected a boolean!", source, value)];
         }
         if (value.value !== "true" && value.value !== "false") {
-            return Optional.of([new SchemaValidationError("Expected a boolean!", source, value)]);
+            return [new SchemaValidationError("Expected a boolean!", source, value)];
         }
-        return Optional.empty();
+        return [];
     }
     toString() {
         return "boolean";
@@ -128,26 +128,24 @@ export class YamlSchemaArray extends YamlSchema {
     override getDescription() {
         return `an array in which items are each '${this.itemSchema.getDescription()}'`;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (this.itemSchema instanceof YamlSchemaMythicSkill) {
             this.itemSchema.resolver = Optional.of(new Resolver());
         }
 
         const source = doc.base.getText();
         if (!isCollection(value)) {
-            return Optional.of([new SchemaValidationError("Expected an array!", source, value)]);
+            return [new SchemaValidationError("Expected an array!", source, value)];
         }
 
         const errors: SchemaValidationError[] = [];
 
         value.items.forEach((item) => {
             const innerErrors = this.itemSchema.validateAndModify(doc, item as Node);
-            if (innerErrors.isPresent()) {
-                errors.push(...innerErrors.get());
-            }
+            errors.push(...innerErrors);
         });
 
-        return errors.length > 0 ? Optional.of(errors) : Optional.empty();
+        return errors;
     }
     toString() {
         return `array(${this.itemSchema.toString()})`;
@@ -160,25 +158,25 @@ export class YamlSchemaTuple extends YamlSchema {
     override getDescription() {
         return `a tuple in which items are: '${this.itemSchema.map((schema) => schema.getDescription()).join("', '")}'`;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isCollection(value)) {
-            return Optional.of([new SchemaValidationError("Expected a tuple!", source, value)]);
+            return [new SchemaValidationError("Expected a tuple!", source, value)];
         }
         // check length
         if (value.items.length !== this.itemSchema.length) {
-            return Optional.of([
+            return [
                 new SchemaValidationError(`Expected a tuple with ${this.itemSchema.length} items, but got ${value.items.length}!`, source, value),
-            ]);
+            ];
         }
         // check items
+        const errors: SchemaValidationError[] = [];
         for (let i = 0; i < this.itemSchema.length; i++) {
-            const errors = this.itemSchema[i].validateAndModify(doc, value.items[i] as Node);
-            if (errors.isPresent()) {
-                return errors;
-            }
+            const innerErrors = this.itemSchema[i].validateAndModify(doc, value.items[i] as Node);
+
+            errors.push(...innerErrors);
         }
-        return Optional.empty();
+        return errors;
     }
     setItemSchema(itemSchema: YamlSchema[]) {
         this.itemSchema = itemSchema;
@@ -214,10 +212,10 @@ export class YamlSchemaObject extends YamlSchema {
             .map(([key, { schema, required }]) => `${key}: ${schema.getDescription()}${required ? " (required)" : ""}`)
             .join("', '")}'`;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isMap(value)) {
-            return Optional.of([new SchemaValidationError("Expected an object!", source, value)]);
+            return [new SchemaValidationError("Expected an object!", source, value)];
         }
 
         const { items } = value;
@@ -235,9 +233,7 @@ export class YamlSchemaObject extends YamlSchema {
             if (item) {
                 if (item.value !== null) {
                     const error = schema.validateAndModify(doc, item.value);
-                    if (error.isPresent()) {
-                        errors.push(...error.get());
-                    }
+                    errors.push(...error);
                 }
                 if (item.key !== null && description) {
                     const range = item.key.range;
@@ -253,7 +249,7 @@ export class YamlSchemaObject extends YamlSchema {
                     }
                 }
             } else if (required) {
-                return Optional.of([new SchemaValidationError(`Missing required property "${key}"!`, source, value)]);
+                return [new SchemaValidationError(`Missing required property "${key}"!`, source, value)];
             }
         }
 
@@ -271,11 +267,11 @@ export class YamlSchemaObject extends YamlSchema {
                 if (closest) {
                     message += ` Did you mean "${closest}"?`;
                 }
-                return Optional.of([new SchemaValidationError(message, source, value, customRange)]);
+                return [new SchemaValidationError(message, source, value, customRange)];
             }
         }
 
-        return errors.length > 0 ? Optional.of(errors) : Optional.empty();
+        return errors;
     }
     toString() {
         return `object(${Object.entries(this.properties)
@@ -294,10 +290,10 @@ export class YamlSchemaMap extends YamlSchema {
     override getDescription() {
         return `a map in which values are each '${this.values.getDescription()}'`;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isMap(value)) {
-            return Optional.of([new SchemaValidationError("Expected a map!", source, value)]);
+            return [new SchemaValidationError("Expected a map!", source, value)];
         }
 
         const errors: SchemaValidationError[] = [];
@@ -305,10 +301,10 @@ export class YamlSchemaMap extends YamlSchema {
         const { items } = value;
         for (const item of items) {
             const error = this.values.validateAndModify(doc, item.value as Node);
-            error.ifPresent((e) => errors.push(...e));
+            errors.push(...error);
         }
 
-        return errors.length > 0 ? Optional.of(errors) : Optional.empty();
+        return errors;
     }
 }
 export class YamlSchemaUnion extends YamlSchema {
@@ -323,15 +319,15 @@ export class YamlSchemaUnion extends YamlSchema {
     override getDescription() {
         return `one of these: '${this.items.map((item) => item.getDescription()).join("', '")}'`;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         for (const item of this.items) {
             const error = item.validateAndModify(doc, value);
-            if (error.isEmpty()) {
-                return Optional.empty();
+            if (error.length === 0) {
+                return [];
             }
         }
-        return Optional.of([new SchemaValidationError(`Expected ${this.getDescription()}`, source, value)]);
+        return [new SchemaValidationError(`Expected ${this.getDescription()}`, source, value)];
     }
     toString() {
         return `${this.items.map((item) => item.toString()).join(" | ")}`;
@@ -345,10 +341,10 @@ export class YamlSchemaMythicSkill extends YamlSchema {
     override getDescription() {
         return "a skill" + (this.supportsTriggers ? "" : " that does not support triggers.");
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isScalar(value)) {
-            return Optional.of([new SchemaValidationError("Expected a skill!", source, value)]);
+            return [new SchemaValidationError("Expected a skill!", source, value)];
         }
 
         let rangeOffset = CustomRange.fromYamlRange(source, value.range!);
@@ -368,9 +364,7 @@ export class YamlSchemaMythicSkill extends YamlSchema {
 
         const ast = getAst(skillLine);
         if (ast.hasErrors()) {
-            return Optional.of(
-                ast.errors!.map((error) => new SchemaValidationError(error.message, source, value, error.range.add(rangeOffset.start))),
-            );
+            return ast.errors!.map((error) => new SchemaValidationError(error.message, source, value, error.range.add(rangeOffset.start)));
         }
 
         this.resolver.ifPresent((r) => {
@@ -378,7 +372,7 @@ export class YamlSchemaMythicSkill extends YamlSchema {
             r.resolveWithDoc(doc, rangeOffset);
         });
 
-        return Optional.empty();
+        return [];
     }
     toString() {
         return "skill";
@@ -392,9 +386,9 @@ export class YamlSchemaMythicItem extends YamlSchema {
     override getDescription() {
         return "an item";
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
-        return Optional.empty();
+        return [];
     }
     toString() {
         return "item";
@@ -408,9 +402,9 @@ export class YamlSchemaMythicCondition extends YamlSchema {
     override getDescription() {
         return "a condition";
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): Optional<SchemaValidationError[]> {
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
-        return Optional.empty();
+        return [];
     }
     toString() {
         return "condition";

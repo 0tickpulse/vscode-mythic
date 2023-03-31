@@ -32,6 +32,7 @@
         "@types/node": "^18.15.0",
         "@types/picomatch": "^2.3.0",
         "js-levenshtein": "^1.1.6",
+        "linked-list": "^3.1.0",
         "picomatch": "^2.3.1",
         "tick-ts-utils": "^4.0.0",
         "vscode-languageserver": "^8.1.0",
