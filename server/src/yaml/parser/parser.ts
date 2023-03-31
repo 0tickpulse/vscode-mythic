@@ -86,6 +86,7 @@ export function parse(document: TextDocument) {
     // syntax highlighting
     visit(yamlAst, {
         Scalar(key, node) {
+            console.time("parse (yaml ast visiting) (Scalar)");
             if (key === "key") {
                 documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, node.range!), SemanticTokenTypes.property));
                 return;
@@ -93,6 +94,7 @@ export function parse(document: TextDocument) {
             const { value, range } = node;
             const color: SemanticTokenTypes = !isNaN(Number(value)) ? SemanticTokenTypes.number : SemanticTokenTypes.string;
             documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), color));
+            console.timeEnd("parse (yaml ast visiting) (Scalar)");
         },
     });
     console.timeEnd("parse (yaml ast visiting)");
