@@ -20,6 +20,7 @@ export default (params: SemanticTokensParams): SemanticTokens => {
         const lines = getRangeText(highlight.range).split(/\r?\n/);
         if (lines.length === 1) {
             processedHighlights.push(highlight);
+            return;
         }
 
         const newHighlights: Highlight[] = [];
