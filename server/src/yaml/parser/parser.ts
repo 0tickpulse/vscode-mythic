@@ -75,7 +75,7 @@ export function parse(document: TextDocument) {
             }
             const { value, range } = node;
             const color: SemanticTokenTypes = !isNaN(Number(value)) ? SemanticTokenTypes.number : SemanticTokenTypes.string;
-            documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), color));
+            // documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), color));
         },
     });
 
