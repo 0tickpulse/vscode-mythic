@@ -30,6 +30,7 @@ export class DocumentInfo {
         this.errors.push(error);
     }
     addHighlight(highlight: Highlight) {
+        console.time(`[DocumentInfo] addHighlight`);
         const lines = highlight.range.getFrom(this.base.getText()).split("\n");
         if (lines.length === 1) {
             this.#highlights.unshift(highlight);
@@ -46,6 +47,7 @@ export class DocumentInfo {
             this.#highlights.unshift(new Highlight(range, highlight.color));
             lastChar = 0;
         }
+        console.timeEnd(`[DocumentInfo] addHighlight`);
     }
     get highlights() {
         return this.#highlights;
@@ -84,15 +86,17 @@ export function parse(document: TextDocument) {
     // syntax highlighting
     visit(yamlAst, {
         Scalar(key, node) {
-            console.time("parse (yaml ast visiting) (Scalar)");
+            console.time("parse (yaml ast visiting) (Scalar) (key)");
             if (key === "key") {
                 documentInfo.addHighlight(new Highlight(CustomRange.fromYamlRange(source, node.range!), SemanticTokenTypes.property));
                 return;
             }
+            console.timeEnd("parse (yaml ast visiting) (Scalar) (key)");
+            console.time("parse (yaml ast visiting) (Scalar) (value)");
             const { value, range } = node;
             const color: SemanticTokenTypes = !isNaN(Number(value)) ? SemanticTokenTypes.number : SemanticTokenTypes.string;
             documentInfo.addHighlight(new Highlight(CustomRange.fromYamlRange(source, range!), color));
-            console.timeEnd("parse (yaml ast visiting) (Scalar)");
+            console.timeEnd("parse (yaml ast visiting) (Scalar) (value)");
         },
     });
     console.timeEnd("parse (yaml ast visiting)");
