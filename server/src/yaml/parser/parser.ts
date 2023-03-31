@@ -74,12 +74,15 @@ export function parse(document: TextDocument) {
         return documentInfo;
     }
 
+    console.time("parse (finding schema)");
     PATH_MAP.forEach((schema, pathMatcher) => {
         if (picomatch(pathMatcher)(document.uri)) {
             documentInfo.setSchema(schema);
         }
     });
+    console.timeEnd("parse (finding schema)");
 
+    console.time("parse (yaml ast visiting)");
     // syntax highlighting
     visit(yamlAst, {
         Scalar(key, node) {
@@ -92,7 +95,9 @@ export function parse(document: TextDocument) {
             documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), color));
         },
     });
+    console.timeEnd("parse (yaml ast visiting)");
 
+    console.time("parse (finding comments)");
     source.split("\n").forEach((line, index) => {
         // index of #
         const commentIndex = line.indexOf("#");
@@ -105,17 +110,19 @@ export function parse(document: TextDocument) {
             );
         }
     });
+    console.timeEnd("parse (finding comments)");
 
     const { schema } = documentInfo;
     documentInfo.yamlAst.errors.forEach((error) =>
-        documentInfo.addError({
-            message: error.message,
-            range: new CustomRange(CustomPosition.fromOffset(source, error.pos[0]), CustomPosition.fromOffset(source, error.pos[1])),
-            severity: 1,
-            source: "Mythic Language Server",
-        }),
+    documentInfo.addError({
+        message: error.message,
+        range: new CustomRange(CustomPosition.fromOffset(source, error.pos[0]), CustomPosition.fromOffset(source, error.pos[1])),
+        severity: 1,
+        source: "Mythic Language Server",
+    }),
     );
     if (!schema.isEmpty()) {
+        console.time("parse (schema validation)");
         // console.log(`Schema found for ${document.uri}: ${schema.get().getDescription()}`);
         const errors = schema.get().validateAndModify(documentInfo, yamlAst.contents!);
         errors.otherwise([]).forEach(
@@ -128,6 +135,7 @@ export function parse(document: TextDocument) {
                     source: "Mythic Language Server",
                 }),
         );
+        console.timeEnd("parse (schema validation)");
     }
 
     return documentInfo;
