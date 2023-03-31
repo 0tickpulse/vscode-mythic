@@ -28,13 +28,13 @@ import {
 } from "./parserExpressions.js";
 import { MythicScannerResult, MythicToken, MythicTokenType } from "./scanner.js";
 
-export class ParseResult {
+export class MythicSkillParseResult {
     private constructor(public skillLine?: SkillLineExpr, public errors?: SyntaxError[], public completions?: string[]) {}
     static fromSkillLine(skillLine: SkillLineExpr) {
-        return new ParseResult(skillLine);
+        return new MythicSkillParseResult(skillLine);
     }
     static fromErrors(errors: SyntaxError[]) {
-        return new ParseResult(undefined, errors);
+        return new MythicSkillParseResult(undefined, errors);
     }
     hasErrors() {
         return this.errors?.length ?? 0 > 0;
@@ -59,7 +59,7 @@ export class Parser {
     constructor(public result: MythicScannerResult) {
         this.#tokens = result.tokens ?? [];
     }
-    complete(): CompletionItem[] {
+    completeMythicSkill(): CompletionItem[] {
         this.#isCompleting = true;
         if (this.result.errors?.length ?? 0 > 0) {
             return [];
@@ -76,15 +76,15 @@ export class Parser {
             this.#isCompleting = false;
         }
     }
-    parse(): ParseResult {
+    parseMythicSkill(): MythicSkillParseResult {
         if (this.result.errors?.length ?? 0 > 0) {
-            return ParseResult.fromErrors(this.result.errors ?? []);
+            return MythicSkillParseResult.fromErrors(this.result.errors ?? []);
         }
         try {
-            return ParseResult.fromSkillLine(this.#skillLine());
+            return MythicSkillParseResult.fromSkillLine(this.#skillLine());
         } catch (e) {
             if (e instanceof SyntaxError) {
-                return ParseResult.fromErrors([e]);
+                return MythicSkillParseResult.fromErrors([e]);
             }
             throw e;
         }
@@ -131,7 +131,7 @@ export class Parser {
             } else if (this.#checkAny(...exitTypes)) {
                 break;
             } else {
-                throw this.#error(this.#peek(), `Expected targeter, trigger or condition! Source:${this.result.source} \n Exit types: ${exitTypes.join(", ")}.\nStack trace: ${new Error().stack}`);
+                throw this.#error(this.#peek(), `Expected targeter, trigger or condition! \n(For debugging) Exit types: ${exitTypes.join(", ")}.`);
             }
         }
 

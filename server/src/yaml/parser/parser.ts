@@ -14,6 +14,7 @@ export class DocumentInfo {
     errors: Diagnostic[] = [];
     // highlights: Map<number, Color> = new Map();
     #highlights: Highlight[] = [];
+    #semanticTokens: number[] = [];
     constructor(public base: TextDocument, public yamlAst: Document, hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
         this.hovers = hovers ?? [];
         this.schema = Optional.of(schema);
@@ -29,11 +30,24 @@ export class DocumentInfo {
         this.errors.push(error);
     }
     addHighlights(...highlights: Highlight[]) {
-        // console.log("Adding highlights", highlights.map((h) => JSON.stringify({
-        //     range: h.range.toString(),
-        //     color: h.color.toString(),
-        // })));
-        this.#highlights.unshift(...highlights);
+        highlights.forEach((highlight) => {
+            const lines = highlight.range.getFrom(this.base.getText()).split("\n");
+            if (lines.length === 1) {
+                this.#highlights.unshift(highlight);
+                return;
+            }
+
+            let lastChar = highlight.range.start.character;
+            for (let i = 0; i < lines.length; i++) {
+                const lineLength = lines[i].length;
+                const range = new CustomRange(
+                    new CustomPosition(highlight.range.start.line + i, lastChar),
+                    new CustomPosition(highlight.range.start.line + i, lastChar + lineLength),
+                );
+                this.#highlights.unshift(new Highlight(range, highlight.color));
+                lastChar = 0;
+            }
+        });
     }
     get highlights() {
         return this.#highlights;
@@ -75,7 +89,7 @@ export function parse(document: TextDocument) {
             }
             const { value, range } = node;
             const color: SemanticTokenTypes = !isNaN(Number(value)) ? SemanticTokenTypes.number : SemanticTokenTypes.string;
-            // documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), color));
+            documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), color));
         },
     });
 

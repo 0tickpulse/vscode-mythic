@@ -31,9 +31,7 @@ export const SEMANTIC_TOKEN_TYPES : SemanticTokenTypes[] = [
  * @template ColorFormat The format the color takes. Color is a RGB color, string is a CSS color.
  */
 export class Highlight {
-    color: SemanticTokenTypes;
-    public constructor(public range: CustomRange, color: SemanticTokenTypes) {
-        this.color = color;
+    constructor(public range: CustomRange, public color: SemanticTokenTypes) {
     }
     getColorIndex() {
         return SEMANTIC_TOKEN_TYPES.indexOf(this.color);

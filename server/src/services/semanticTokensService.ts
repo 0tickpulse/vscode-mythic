@@ -14,38 +14,18 @@ export default (params: SemanticTokensParams): SemanticTokens => {
     const source = doc.base.getText();
     const getRangeText = memoize((range: CustomRange) => range.getFrom(source));
 
-    console.time(`[semanticTokensService] ${params.textDocument.uri} (processedHighlights)`)
-    const processedHighlights: Highlight[] = [];
-    highlights.forEach((highlight) => {
-        const lines = getRangeText(highlight.range).split(/\r?\n/);
-        if (lines.length === 1) {
-            processedHighlights.push(highlight);
-            return;
-        }
-
-        let lastChar = highlight.range.start.character;
-        for (let i = 0; i < lines.length; i++) {
-            const lineLength = lines[i].length;
-            const range = new CustomRange(
-                new CustomPosition(highlight.range.start.line + i, lastChar),
-                new CustomPosition(highlight.range.start.line + i, lastChar + lineLength),
-            );
-            processedHighlights.push(new Highlight(range, highlight.color));
-            lastChar = 0;
-        }
-    });
-    console.timeEnd(`[semanticTokensService] ${params.textDocument.uri} (processedHighlights)`)
+    console.log(`Processing ${highlights.length} highlights`)
     console.time(`[semanticTokensService] ${params.textDocument.uri} (sort)`)
-    processedHighlights.sort((a, b) => a.range.start.compareTo(b.range.start));
+    highlights.sort((a, b) => a.range.start.compareTo(b.range.start));
     console.timeEnd(`[semanticTokensService] ${params.textDocument.uri} (sort)`)
 
     let lastLine = 0;
     let lastChar = 0;
-    const tokens = new Array(processedHighlights.length * 5);
+    const tokens = new Array(highlights.length * 5);
     let tokenIndex = 0;
 
     console.time(`[semanticTokensService] ${params.textDocument.uri} (converting to int array)`)
-    processedHighlights.forEach((highlight) => {
+    highlights.forEach((highlight) => {
         const line = highlight.range.start.line - lastLine;
         const char = line === 0 ? highlight.range.start.character - lastChar : highlight.range.start.character;
         const length = getRangeText(highlight.range).length;
@@ -63,6 +43,7 @@ export default (params: SemanticTokensParams): SemanticTokens => {
 
     return { data: tokens };
 };
+
 function memoize<T extends Function>(fn: T): T {
     const cache = new Map();
     return ((...args: any[]) => {
