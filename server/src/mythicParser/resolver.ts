@@ -78,7 +78,11 @@ export class Resolver extends ExprVisitor<void> {
         if (!expr) {
             return;
         }
-        return expr.accept(this);
+        // benchmark
+        // console.time(`resolve ${expr.constructor.name}`);
+        const value = expr.accept(this);
+        // console.timeEnd(`resolve ${expr.constructor.name}`);
+        return value;
     }
     override visitSkillLineExpr(skillLine: SkillLineExpr): void {
         this.#currentSkill = skillLine;
@@ -104,12 +108,11 @@ export class Resolver extends ExprVisitor<void> {
         for (const mlc of mechanic.mlcs ?? []) {
             this.visitMlcExpr(mlc);
         }
-        if (mechanic.rightBrace) {
-            this.#addHighlight(mechanic.rightBrace.getRange(), SemanticTokenTypes.operator);
-        }
+        mechanic.rightBrace && this.#addHighlight(mechanic.rightBrace.getRange(), SemanticTokenTypes.operator);
 
         if (!getAllMechanicsAndAliases().includes(mechanicName)) {
-            !mechanicName.toLowerCase().startsWith("skill:") && this.#errors.push(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill));
+            !mechanicName.toLowerCase().startsWith("skill:") &&
+                this.#errors.push(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill));
             return;
         }
         this.#hovers.push({
@@ -244,7 +247,7 @@ export class Resolver extends ExprVisitor<void> {
         if (semicolon !== undefined) {
             this.#addHighlight(semicolon.getRange(), SemanticTokenTypes.operator);
         }
-        mlc.value.accept(this);
+        this.#resolveExpr(mlc.value);
     }
     override visitMlcValueExpr(mlcValue: MlcValueExpr): void {
         mlcValue.identifiers.forEach((v) => {

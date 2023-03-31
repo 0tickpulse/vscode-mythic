@@ -30,11 +30,13 @@ export class DocumentInfo {
         this.errors.push(error);
     }
     addHighlight(highlight: Highlight) {
-        const lines = highlight.range.getFrom(this.base.getText()).split("\n");
-        if (lines.length === 1) {
+
+        if (highlight.range.start.line === highlight.range.end.line) {
             this.#highlights.unshift(highlight);
             return;
         }
+
+        const lines = highlight.range.getFrom(this.base.getText()).split("\n");
 
         let lastChar = highlight.range.start.character;
         for (let i = 0; i < lines.length; i++) {
@@ -120,9 +122,11 @@ export function parse(document: TextDocument) {
         }),
     );
     if (!schema.isEmpty()) {
-        console.time("parse (schema validation)");
+        console.time(`parse (schema validation) (${schema.get().toString()})})`);
         // console.log(`Schema found for ${document.uri}: ${schema.get().getDescription()}`);
         const errors = schema.get().validateAndModify(documentInfo, yamlAst.contents!);
+        console.timeEnd(`parse (schema validation) (${schema.get().toString()})})`);
+        console.time("parse (adding errors)");
         errors.forEach(
             (error) =>
                 error.range !== null &&
@@ -133,7 +137,7 @@ export function parse(document: TextDocument) {
                     source: "Mythic Language Server",
                 }),
         );
-        console.timeEnd("parse (schema validation)");
+        console.timeEnd("parse (adding errors)");
     }
 
     return documentInfo;

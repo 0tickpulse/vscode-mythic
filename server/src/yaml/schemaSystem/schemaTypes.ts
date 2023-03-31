@@ -16,9 +16,31 @@ export class SchemaValidationError {
     ) {}
 }
 
+/**
+ * A schema that can be used to validate and modify a YAML node.
+ */
 export abstract class YamlSchema {
     abstract getDescription(): string;
+    /**
+     * Performs validation on the given value, returning a list of errors.
+     * This additionally modifies the document, adding things like hover text.
+     *
+     * @param doc   The document to validate and modify
+     * @param value The value to validate and modify
+     */
     abstract validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[];
+    /**
+     * Like validateAndModify, but also times the execution. Used for debugging.
+     *
+     * @param doc   The document to validate and modify
+     * @param value The value to validate and modify
+     */
+    validateAndModifyTimed(doc: DocumentInfo, value: Node) {
+        console.time(`validateAndModify (${this.toString()})`);
+        const errors = this.validateAndModify(doc, value);
+        console.timeEnd(`validateAndModify (${this.toString()})`);
+        return errors;
+    }
 }
 
 export class YamlSchemaString extends YamlSchema {
@@ -351,6 +373,7 @@ export class YamlSchemaMythicSkill extends YamlSchema {
         if (value.type === "QUOTE_DOUBLE" || value.type === "QUOTE_SINGLE") {
             rangeOffset = rangeOffset.addOffsetToStart(source, 1).addOffsetToEnd(source, -1);
         }
+
         const skillLine = rangeOffset
             .getFrom(source)
             .split("\n")
@@ -367,10 +390,10 @@ export class YamlSchemaMythicSkill extends YamlSchema {
             return ast.errors!.map((error) => new SchemaValidationError(error.message, source, value, error.range.add(rangeOffset.start)));
         }
 
-        this.resolver.ifPresent((r) => {
-            r.setAst(ast.skillLine!);
-            r.resolveWithDoc(doc, rangeOffset);
-        });
+        // this.resolver.ifPresent((r) => {
+        //     r.setAst(ast.skillLine!);
+        //     r.resolveWithDoc(doc, rangeOffset);
+        // });
 
         return [];
     }
