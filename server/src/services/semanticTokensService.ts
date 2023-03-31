@@ -23,7 +23,6 @@ export default (params: SemanticTokensParams): SemanticTokens => {
             return;
         }
 
-        const newHighlights: Highlight[] = [];
         let lastChar = highlight.range.start.character;
         for (let i = 0; i < lines.length; i++) {
             const lineLength = lines[i].length;
@@ -31,10 +30,9 @@ export default (params: SemanticTokensParams): SemanticTokens => {
                 new CustomPosition(highlight.range.start.line + i, lastChar),
                 new CustomPosition(highlight.range.start.line + i, lastChar + lineLength),
             );
-            newHighlights.push(new Highlight(range, highlight.color));
+            processedHighlights.push(new Highlight(range, highlight.color));
             lastChar = 0;
         }
-        processedHighlights.push(...newHighlights);
     });
     console.timeEnd(`[semanticTokensService] ${params.textDocument.uri} (processedHighlights)`)
     console.time(`[semanticTokensService] ${params.textDocument.uri} (sort)`)
