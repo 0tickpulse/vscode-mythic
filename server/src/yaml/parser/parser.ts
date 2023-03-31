@@ -29,25 +29,23 @@ export class DocumentInfo {
     addError(error: Diagnostic) {
         this.errors.push(error);
     }
-    addHighlights(...highlights: Highlight[]) {
-        highlights.forEach((highlight) => {
-            const lines = highlight.range.getFrom(this.base.getText()).split("\n");
-            if (lines.length === 1) {
-                this.#highlights.unshift(highlight);
-                return;
-            }
+    addHighlight(highlight: Highlight) {
+        const lines = highlight.range.getFrom(this.base.getText()).split("\n");
+        if (lines.length === 1) {
+            this.#highlights.unshift(highlight);
+            return;
+        }
 
-            let lastChar = highlight.range.start.character;
-            for (let i = 0; i < lines.length; i++) {
-                const lineLength = lines[i].length;
-                const range = new CustomRange(
-                    new CustomPosition(highlight.range.start.line + i, lastChar),
-                    new CustomPosition(highlight.range.start.line + i, lastChar + lineLength),
-                );
-                this.#highlights.unshift(new Highlight(range, highlight.color));
-                lastChar = 0;
-            }
-        });
+        let lastChar = highlight.range.start.character;
+        for (let i = 0; i < lines.length; i++) {
+            const lineLength = lines[i].length;
+            const range = new CustomRange(
+                new CustomPosition(highlight.range.start.line + i, lastChar),
+                new CustomPosition(highlight.range.start.line + i, lastChar + lineLength),
+            );
+            this.#highlights.unshift(new Highlight(range, highlight.color));
+            lastChar = 0;
+        }
     }
     get highlights() {
         return this.#highlights;
@@ -88,12 +86,12 @@ export function parse(document: TextDocument) {
         Scalar(key, node) {
             console.time("parse (yaml ast visiting) (Scalar)");
             if (key === "key") {
-                documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, node.range!), SemanticTokenTypes.property));
+                documentInfo.addHighlight(new Highlight(CustomRange.fromYamlRange(source, node.range!), SemanticTokenTypes.property));
                 return;
             }
             const { value, range } = node;
             const color: SemanticTokenTypes = !isNaN(Number(value)) ? SemanticTokenTypes.number : SemanticTokenTypes.string;
-            documentInfo.addHighlights(new Highlight(CustomRange.fromYamlRange(source, range!), color));
+            documentInfo.addHighlight(new Highlight(CustomRange.fromYamlRange(source, range!), color));
             console.timeEnd("parse (yaml ast visiting) (Scalar)");
         },
     });
@@ -104,7 +102,7 @@ export function parse(document: TextDocument) {
         // index of #
         const commentIndex = line.indexOf("#");
         if (commentIndex !== -1) {
-            documentInfo.addHighlights(
+            documentInfo.addHighlight(
                 new Highlight(
                     new CustomRange(new CustomPosition(index, commentIndex), new CustomPosition(index, line.length)),
                     SemanticTokenTypes.comment,
@@ -116,12 +114,12 @@ export function parse(document: TextDocument) {
 
     const { schema } = documentInfo;
     documentInfo.yamlAst.errors.forEach((error) =>
-    documentInfo.addError({
-        message: error.message,
-        range: new CustomRange(CustomPosition.fromOffset(source, error.pos[0]), CustomPosition.fromOffset(source, error.pos[1])),
-        severity: 1,
-        source: "Mythic Language Server",
-    }),
+        documentInfo.addError({
+            message: error.message,
+            range: new CustomRange(CustomPosition.fromOffset(source, error.pos[0]), CustomPosition.fromOffset(source, error.pos[1])),
+            severity: 1,
+            source: "Mythic Language Server",
+        }),
     );
     if (!schema.isEmpty()) {
         console.time("parse (schema validation)");

@@ -60,7 +60,7 @@ export class Resolver extends ExprVisitor<void> {
             doc.addError({ ...error.toDiagnostic(), range: r(error.range!).add(initialOffset.start) });
         });
         this.#characters.forEach((color, range) => {
-            doc.addHighlights(new Highlight(range.add(initialOffset.start), color));
+            doc.addHighlight(new Highlight(range.add(initialOffset.start), color));
         });
     }
     #addHighlight(range: CustomRange, color: SemanticTokenTypes) {
