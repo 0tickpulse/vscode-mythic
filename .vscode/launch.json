@@ -17,7 +17,7 @@
 			"name": "Launch Client",
 			"runtimeExecutable": "${execPath}",
 			"args": ["--extensionDevelopmentPath=${workspaceRoot}", "--verbose"],
-			"outFiles": ["${workspaceRoot}/out/client.js"],
+			"outFiles": ["${workspaceRoot}/dist/client.js"],
 			"preLaunchTask": {
 				"type": "npm",
 				"script": "watch"
