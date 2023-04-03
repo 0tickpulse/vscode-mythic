@@ -15,7 +15,15 @@ export default async (params: TextDocumentChangeEvent<TextDocument>) => {
 
     // ratelimitEnd = Date.now() + 1000;
 
-    const info = parse(params.document);
-    documents.set(info);
-    server.connection.sendDiagnostics({ uri: params.document.uri, diagnostics: info.errors });
+    const current = Date.now();
+    (await parse(params.document)).ifOkOrElse((info) => {
+        if (info.lastUpdate !== current) {
+            // this means that the document has been updated since this parse started and we should ignore it
+            return;
+        }
+        documents.set(info);
+        server.connection.sendDiagnostics({ uri: params.document.uri, diagnostics: info.errors });
+    }, (e) => {
+        console.log((e as any).stack);
+    });
 };

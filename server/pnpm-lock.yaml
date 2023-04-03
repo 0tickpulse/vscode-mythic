@@ -4,13 +4,15 @@ specifiers:
   '@types/js-levenshtein': ^1.1.1
   '@types/node': ^18.15.0
   '@types/picomatch': ^2.3.0
+  '@types/workerpool': ^6.4.0
   jest: ^29.5.0
   js-levenshtein: ^1.1.6
   linked-list: ^3.1.0
   picomatch: ^2.3.1
-  tick-ts-utils: ^4.0.0
+  tick-ts-utils: ^4.2.2
   vscode-languageserver: ^8.1.0
   vscode-languageserver-textdocument: ^1.0.8
+  workerpool: ^6.4.0
   yaml: ^2.2.1
 
 dependencies:
@@ -19,13 +21,15 @@ dependencies:
   js-levenshtein: 1.1.6
   linked-list: 3.1.0
   picomatch: 2.3.1
-  tick-ts-utils: 4.0.0
+  tick-ts-utils: 4.2.2
   vscode-languageserver: 8.1.0
   vscode-languageserver-textdocument: 1.0.8
+  workerpool: 6.4.0
   yaml: 2.2.1
 
 devDependencies:
   '@types/js-levenshtein': 1.1.1
+  '@types/workerpool': 6.4.0
   jest: 29.5.0_@types+node@18.15.0
 
 packages:
@@ -638,8 +642,8 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.14
     dev: true
 
-  /@mxssfd/typedoc-theme/1.0.3:
-    resolution: {integrity: sha512-xtgE5+Pe3Dk2NSqYyZKIz8Zi6/Mupps+nIFtfL7hFTN3vjXpvcFFevJg7DcCwD51q/tPy0VEivOhbfpCrocvsA==}
+  /@mxssfd/typedoc-theme/1.0.6:
+    resolution: {integrity: sha512-GmaVRWWCaL9jIr58uKyXuBS+yn5L4e5BznclGCB+VlDSGHfZEc8GZdVc4ApKFUC3UEtZkS3fWy9S5aJMQttUyQ==}
     engines: {node: '>= 14'}
     peerDependencies:
       typedoc: ^0.23.21
@@ -740,6 +744,12 @@ packages:
   /@types/unist/2.0.6:
     resolution: {integrity: sha512-PBjIUxZHOuj0R15/xuwJYjFi+KZdNFrehocChv4g5hu6aFroHue8m0lBP0POdK2nKzbw0cgV1mws8+V/JAcEkQ==}
     dev: false
+
+  /@types/workerpool/6.4.0:
+    resolution: {integrity: sha512-SIF2/169pDsLKeM8GQGHkOFifGalDbZgiBSaLUnnlVSRsAOenkAvQ6h4uhV2W+PZZczS+8LQxACwNkSykdT91A==}
+    dependencies:
+      '@types/node': 18.15.0
+    dev: true
 
   /@types/yargs-parser/21.0.0:
     resolution: {integrity: sha512-iO9ZQHkZxHn4mSakYV0vFHAVDyEOIJQrV2uZ06HxEPcx+mt8swXoZHIbaaJ2crJYFfErySgktuTZ3BeLz+XmFA==}
@@ -2465,10 +2475,10 @@ packages:
       minimatch: 3.1.2
     dev: true
 
-  /tick-ts-utils/4.0.0:
-    resolution: {integrity: sha512-TXwTQiHEmQCpgi8WC7ru0b8a2F8ZbbZcJZe6GLgqZMmNzMlt7mxRYgW93xgIfcahQgormblDqpiuNGW4aVDf/g==}
+  /tick-ts-utils/4.2.2:
+    resolution: {integrity: sha512-fZ2hNwXkhJs93KRhLCQu8n2QrZbm7xUuxRO7WGqnbMVacOCI/Y2OjjmxR7YsQu223eXXFwBL6umt1FRlKcMGlw==}
     dependencies:
-      '@mxssfd/typedoc-theme': 1.0.3
+      '@mxssfd/typedoc-theme': 1.0.6
       emphasize: 6.0.0
       stacktrace-js: 2.0.2
       utils: 0.3.1
@@ -2600,6 +2610,10 @@ packages:
   /word-wrap/1.2.3:
     resolution: {integrity: sha512-Hz/mrNwitNRh/HUAtM/VT/5VH+ygD6DV7mYKZAtHOrbs8U7lvPS6xf7EJKMF0uW1KJCl0H701g3ZGus+muE5vQ==}
     engines: {node: '>=0.10.0'}
+    dev: false
+
+  /workerpool/6.4.0:
+    resolution: {integrity: sha512-i3KR1mQMNwY2wx20ozq2EjISGtQWDIfV56We+yGJ5yDs8jTwQiLLaqHlkBHITlCuJnYlVRmXegxFxZg7gqI++A==}
     dev: false
 
   /wrap-ansi/7.0.0:

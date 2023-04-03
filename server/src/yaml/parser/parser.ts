@@ -1,24 +1,27 @@
-import picomatch from "picomatch";
-import { Optional } from "tick-ts-utils";
+import { Optional, Result } from "tick-ts-utils";
 import { Diagnostic, Hover, SemanticTokenTypes } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Document, LineCounter, parseDocument, visit } from "yaml";
 import { Highlight } from "../../colors.js";
 import { CustomPosition, CustomRange, r } from "../../utils/positionsAndRanges.js";
-import { PATH_MAP } from "../schemaSystem/data.js";
 import { YamlSchema } from "../schemaSystem/schemaTypes.js";
+import { join } from "path";
+import picomatch from "picomatch";
+import { PATH_MAP } from "../schemaSystem/data.js";
+import * as workerpool from "workerpool";
 
 export class DocumentInfo {
     hovers: Hover[] = [];
     schema: Optional<YamlSchema> = Optional.empty();
     errors: Diagnostic[] = [];
+    lastUpdate: number;
     // highlights: Map<number, Color> = new Map();
     #highlights: Highlight[] = [];
-    #semanticTokens: number[] = [];
     constructor(public base: TextDocument, public yamlAst: Document, hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
         this.hovers = hovers ?? [];
         this.schema = Optional.of(schema);
         this.errors = errors ?? [];
+        this.lastUpdate = Date.now();
     }
     setSchema(schema: YamlSchema) {
         this.schema = Optional.of(schema);
@@ -30,7 +33,6 @@ export class DocumentInfo {
         this.errors.push(error);
     }
     addHighlight(highlight: Highlight) {
-
         if (highlight.range.start.line === highlight.range.end.line) {
             this.#highlights.unshift(highlight);
             return;
@@ -60,14 +62,9 @@ export class DocumentInfo {
     }
 }
 
-export function parse(document: TextDocument) {
-    const source = document.getText();
-    const documentInfo = new DocumentInfo(
-        document,
-        parseDocument(source, {
-            lineCounter: new LineCounter(),
-        }),
-    );
+export function parseSync({ uri, languageId, version, source }: Pick<TextDocument, "uri" | "languageId" | "version"> & { source: string }) {
+    const document = TextDocument.create(uri, languageId, version, source);
+    const documentInfo = new DocumentInfo(document, parseDocument(source));
     const { yamlAst } = documentInfo;
     const { contents } = yamlAst;
     if (contents === null) {
@@ -76,7 +73,7 @@ export function parse(document: TextDocument) {
 
     console.time("parse (finding schema)");
     PATH_MAP.forEach((schema, pathMatcher) => {
-        if (picomatch(pathMatcher)(document.uri)) {
+        if (picomatch(pathMatcher)(uri)) {
             documentInfo.setSchema(schema);
         }
     });
@@ -123,7 +120,7 @@ export function parse(document: TextDocument) {
     );
     if (!schema.isEmpty()) {
         console.time(`parse (schema validation) (${schema.get().toString()})})`);
-        // console.log(`Schema found for ${document.uri}: ${schema.get().getDescription()}`);
+        // console.log(`Schema found for ${uri}: ${schema.get().getDescription()}`);
         const errors = schema.get().validateAndModify(documentInfo, yamlAst.contents!);
         console.timeEnd(`parse (schema validation) (${schema.get().toString()})})`);
         console.time("parse (adding errors)");
@@ -142,3 +139,42 @@ export function parse(document: TextDocument) {
 
     return documentInfo;
 }
+
+export const WORKER_POOL = workerpool.pool(__filename, {
+    onCreateWorker(options) {
+        console.log("[Parser] Created new worker.");
+    },
+    workerType: "auto",
+    workerThreadOpts: {
+        stdin: false,
+        stdout: false,
+    },
+});
+
+/**
+ * Like {@link parseSync} but runs in a separate worker thread instead of the main thread.
+ * This allows for concurrent parsing of multiple documents at once.
+ *
+ * @param document The document to parse.
+ * @returns The parsed document.
+ */
+export async function parse(document: TextDocument): Promise<Result<DocumentInfo, unknown>> {
+    try {
+        return Result.ok(
+            await WORKER_POOL.exec("parseSync", [
+                {
+                    uri: document.uri,
+                    languageId: document.languageId,
+                    version: document.version,
+                    source: document.getText(),
+                },
+            ]),
+        );
+    } catch (e) {
+        return Result.error(e);
+    }
+}
+
+workerpool.worker({
+    parseSync,
+});

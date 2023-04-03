@@ -2,7 +2,7 @@
 
 import { join } from "path";
 import { ExtensionContext, Range, Position, TextEditor, window, workspace } from "vscode";
-import { LanguageClientOptions, LanguageClient, TransportKind, ServerOptions } from "vscode-languageclient/node.js";
+import { LanguageClientOptions, LanguageClient, TransportKind, ServerOptions, ForkOptions } from "vscode-languageclient/node.js";
 
 let client: LanguageClient;
 
@@ -11,7 +11,7 @@ let client: LanguageClient;
 export async function activate(context: ExtensionContext) {
     const serverModule = context.asAbsolutePath(join("out", "server.js"));
     log(`Attempting to start server from ${serverModule}...`);
-    const debugOptions = { execArgv: ["--nolazy"] };
+    const debugOptions: ForkOptions = { execArgv: ["--nolazy"] };
     const serverOptions: ServerOptions = {
         run: { module: serverModule, transport: TransportKind.ipc },
         debug: {
@@ -23,6 +23,9 @@ export async function activate(context: ExtensionContext) {
     const clientOptions: LanguageClientOptions = {
         documentSelector: [{ scheme: "file", language: "mythic" }],
     };
+
+    // log the command that is being run
+    log(`Starting server with command: ${serverOptions.run?.module}`);
 
     client = new LanguageClient("mythicLanguageServer", "Mythic Language Server", serverOptions, clientOptions);
 

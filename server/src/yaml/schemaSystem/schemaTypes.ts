@@ -390,10 +390,10 @@ export class YamlSchemaMythicSkill extends YamlSchema {
             return ast.errors!.map((error) => new SchemaValidationError(error.message, source, value, error.range.add(rangeOffset.start)));
         }
 
-        // this.resolver.ifPresent((r) => {
-        //     r.setAst(ast.skillLine!);
-        //     r.resolveWithDoc(doc, rangeOffset);
-        // });
+        this.resolver.ifPresent((r) => {
+            r.setAst(ast.skillLine!);
+            r.resolveWithDoc(doc, rangeOffset);
+        });
 
         return [];
     }
