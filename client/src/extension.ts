@@ -10,7 +10,7 @@ let client: LanguageClient;
 // Your extension is activated the very first time the command is executed
 export async function activate(context: ExtensionContext) {
     const serverModule = context.asAbsolutePath(join("dist", "server.js"));
-    log(`Attempting to start server from ${serverModule}...`);
+    log(`Attempting to start server from '${serverModule}'...`);
     const debugOptions: ForkOptions = { execArgv: ["--nolazy"] };
     const serverOptions: ServerOptions = {
         run: { module: serverModule, transport: TransportKind.ipc },

@@ -5,7 +5,7 @@
             "ES2022"
         ],
         "module": "CommonJS",
-        "moduleResolution": "node",
+        "moduleResolution": "nodenext",
         "sourceMap": true,
         "strict": true,
         "outDir": "out",

@@ -4,14 +4,14 @@
         "lib": [
             "ES2022"
         ],
-        "module": "CommonJS",
-        "moduleResolution": "node",
+        "module": "ESNext",
+        "moduleResolution": "nodenext",
         "sourceMap": true,
         "strict": true,
         "outDir": "out",
         "rootDir": "src",
         "skipLibCheck": true,
-		"esModuleInterop": true,
+        "esModuleInterop": true,
     },
     "include": [
         "src"

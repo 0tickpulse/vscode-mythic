@@ -1,3 +1,9 @@
+# Source files are not needed in the production build
 server/
 client/
+# VSCode settings
 .vscode/
+# TypeScript files are not needed in the production build
+**/*.ts
+# TSConfig files
+**/tsconfig.json

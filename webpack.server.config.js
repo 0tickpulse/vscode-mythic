@@ -7,13 +7,13 @@ const webpack = require("webpack");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
-    target: "webworker", // vscode extensions run in webworker context for VS Code web 📖 -> https://webpack.js.org/configuration/target/#target
+    target: "node", // node for the server 📖 -> https://webpack.js.org/configuration/target/#target
 
-    entry: "./src/extension.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
+    entry: "./server/src/index.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
     output: {
         // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
         path: path.resolve(__dirname, "dist"),
-        filename: "extension.js",
+        filename: "server.js",
         libraryTarget: "commonjs2",
         devtoolModuleFilenameTemplate: "../[resource-path]",
     },
@@ -23,7 +23,7 @@ const config = {
     },
     resolve: {
         // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
-        mainFields: ["browser", "module", "main"], // look for `browser` entry point in imported node modules
+        mainFields: ["module", "main"], // look for `browser` entry point in imported node modules
         extensions: [".ts", ".js"],
         alias: {
             // provides alternate implementation for node module and source files
@@ -47,5 +47,11 @@ const config = {
             },
         ],
     },
+    plugins: [
+        // temporary workaround for inconsistent module resolution behavior in ts-loader
+        new webpack.NormalModuleReplacementPlugin(/.*\/+.+\.js$/, (resource) => {
+            resource.request = resource.request.replace(/\.js$/, "");
+        }),
+    ],
 };
 module.exports = config;

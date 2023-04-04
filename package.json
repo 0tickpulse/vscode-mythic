@@ -12,8 +12,12 @@
         "cleanWindows": "rmdir /s /q out",
         "typedoc": "npx typedoc --out docs ./src",
         "prettier": "npx prettier -w ./src",
-        "vscode:prepublish": "pnpm run esbuild-base --minify",
         "test-compile": "tsc -p ./",
+        "client:webpack": "webpack --mode development --config webpack.client.config.js --stats-error-details",
+        "client:webpack-dev": "webpack --mode development --watch --config webpack.client.config.js --stats-error-details",
+        "server:webpack": "webpack --mode development --config webpack.server.config.js --stats-error-details",
+        "server:webpack-dev": "webpack --mode development --watch --config webpack.server.config.js --stats-error-details",
+        "vscode:prepublish": "pnpm run client:webpack && pnpm run server:webpack",
         "package": "pnpm vsce package --no-dependencies",
         "publish": "pnpm vsce publish --no-dependencies"
     },
@@ -64,6 +68,8 @@
     },
     "devDependencies": {
         "eslint": "^8.36.0",
+        "path-browserify": "^1.0.1",
+        "ts-loader": "^9.4.2",
         "typescript": "^4.9.5",
         "webpack": "^5.77.0",
         "webpack-cli": "^5.0.1"
