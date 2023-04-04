@@ -1,6 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 
-import { join } from "path";
+import { join, resolve } from "path";
 import { ExtensionContext, Range, Position, TextEditor, window, workspace } from "vscode";
 import { LanguageClientOptions, LanguageClient, TransportKind, ServerOptions, ForkOptions } from "vscode-languageclient/node.js";
 
@@ -10,6 +10,9 @@ let client: LanguageClient;
 // Your extension is activated the very first time the command is executed
 export async function activate(context: ExtensionContext) {
     const serverModule = context.asAbsolutePath(join("dist", "server.js"));
+    log(`Mythic Language Client
+        Node Version: ${process.version}
+        File: ${resolve(__filename)}`)
     log(`Attempting to start server from '${serverModule}'...`);
     const debugOptions: ForkOptions = { execArgv: ["--nolazy"] };
     const serverOptions: ServerOptions = {
