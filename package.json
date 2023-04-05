@@ -48,6 +48,13 @@
                 "configuration": "./language-configuration.json"
             }
         ],
+        "grammars": [
+            {
+                "language": "mythic",
+                "scopeName": "source.yaml",
+                "path": "./syntaxes/yaml.tmLanguage.json"
+            }
+        ],
         "commands": [
             {
                 "command": "vscode-mythic.helloWorld",

@@ -79,36 +79,6 @@ export function parseSync({ uri, languageId, version, source }: Pick<TextDocumen
     });
     console.timeEnd("parse (finding schema)");
 
-    console.time("parse (yaml ast visiting)");
-    // syntax highlighting
-    visit(yamlAst, {
-        Scalar(key, node) {
-            if (key === "key") {
-                documentInfo.addHighlight(new Highlight(CustomRange.fromYamlRange(source, node.range!), SemanticTokenTypes.property));
-                return;
-            }
-            const { value, range } = node;
-            const color: SemanticTokenTypes = !isNaN(Number(value)) ? SemanticTokenTypes.number : SemanticTokenTypes.string;
-            documentInfo.addHighlight(new Highlight(CustomRange.fromYamlRange(source, range!), color));
-        },
-    });
-    console.timeEnd("parse (yaml ast visiting)");
-
-    console.time("parse (finding comments)");
-    source.split("\n").forEach((line, index) => {
-        // index of #
-        const commentIndex = line.indexOf("#");
-        if (commentIndex !== -1) {
-            documentInfo.addHighlight(
-                new Highlight(
-                    new CustomRange(new CustomPosition(index, commentIndex), new CustomPosition(index, line.length)),
-                    SemanticTokenTypes.comment,
-                ),
-            );
-        }
-    });
-    console.timeEnd("parse (finding comments)");
-
     const { schema } = documentInfo;
     documentInfo.yamlAst.errors.forEach((error) =>
         documentInfo.addError({
