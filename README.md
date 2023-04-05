@@ -1,24 +1,25 @@
-# <img src="./assets/mythicIcon_128x128.png" height=40> VSCode Mythic
+<div style="text-align: center;"><h1><img src="./assets/mythicIcon_128x128.png" height=40> VSCode Mythic</h1></div>
 
-<a href="https://discord.gg/SHthmb6t6n">
-    <img src="https://img.shields.io/static/v1?logo=discord&label=&message=Discord&color=36393f&style=flat-square" alt="Discord">
-</a>
-<a href="https://github.com/0tickpulse/vscode-mythic/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/License-AGPLv3-red?style=flat-square">
-</a>
+<div style="text-align: center;">
+    <a href="https://discord.gg/SHthmb6t6n">
+        <img src="https://img.shields.io/static/v1?logo=discord&label=&message=Discord&    color=36393f&style=flat-square" alt="Discord">
+    </a>
+    <a href="https://github.com/0tickpulse/vscode-mythic/blob/main/LICENSE">
+        <img src="https://img.shields.io/badge/License-AGPLv3-red?style=flat-square">
+    </a>
+</div>
 
-A Visual Studio Code extension that adds language support for MythicMobs configurations.
+<p style="text-align: center;">A Visual Studio Code extension that adds language support for MythicMobs configurations.</p>
 
 ## 📖 Table of Contents
 
-- [ VSCode Mythic](#vscode-mythic)
-  - [📖 Table of Contents](#-table-of-contents)
-  - [🚀 Features](#-features)
-    - [🎉 Current](#-current)
-    - [🚧 Planned](#-planned)
-  - [📦 Installation](#-installation)
-  - [📝 License](#-license)
-  - [🧑‍🤝‍🧑 Credits](#-credits)
+- [📖 Table of Contents](#-table-of-contents)
+- [🚀 Features](#-features)
+  - [🎉 Current](#-current)
+  - [🚧 Planned](#-planned)
+- [📦 Installation](#-installation)
+- [📝 License](#-license)
+- [🧑‍🤝‍🧑 Credits](#-credits)
 
 ## 🚀 Features
 
