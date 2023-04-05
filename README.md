@@ -1,6 +1,6 @@
-<div style="text-align: center;"><h1><img src="./assets/mythicIcon_128x128.png" height=40> VSCode Mythic</h1></div>
+<div align="center"><h1><img src="./assets/mythicIcon_128x128.png" height=40> VSCode Mythic</h1></div>
 
-<div style="text-align: center;">
+<div align="center">
     <a href="https://discord.gg/SHthmb6t6n">
         <img src="https://img.shields.io/static/v1?logo=discord&label=&message=Discord&    color=36393f&style=flat-square" alt="Discord">
     </a>
@@ -9,7 +9,7 @@
     </a>
 </div>
 
-<p style="text-align: center;">A Visual Studio Code extension that adds language support for MythicMobs configurations.</p>
+<p align="center">A Visual Studio Code extension that adds language support for MythicMobs configurations.</p>
 
 ## 📖 Table of Contents
 
