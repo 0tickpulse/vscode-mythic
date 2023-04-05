@@ -1,4 +1,4 @@
-# VSCode Mythic
+# <img src="./assets/mythicIcon_128x128.png" height=40> VSCode Mythic
 
 <a href="https://discord.gg/SHthmb6t6n">
     <img src="https://img.shields.io/static/v1?logo=discord&label=&message=Discord&color=36393f&style=flat-square" alt="Discord">
@@ -9,6 +9,10 @@
 
 A Visual Studio Code extension that adds language support for MythicMobs configurations.
 
-## Features
+## 🚀 Features
 
 - Basic syntax highlighting
+
+## 📦 Installation
+
+Install the extension from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=0tickpulse.vscode-mythic)
