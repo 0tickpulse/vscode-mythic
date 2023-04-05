@@ -11,7 +11,16 @@ A Visual Studio Code extension that adds language support for MythicMobs configu
 
 ## 🚀 Features
 
-- Basic syntax highlighting
+### 🎉 Current
+
+* Basic syntax highlighting
+
+### 🚧 Planned
+
+* Diagnostics
+* Full workspace scanning
+* Go to definition
+* Go to references
 
 ## 📦 Installation
 
