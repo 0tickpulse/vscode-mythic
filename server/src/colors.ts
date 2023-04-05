@@ -1,7 +1,7 @@
 import { SemanticTokenTypes } from "vscode-languageserver";
 import { CustomRange } from "./utils/positionsAndRanges.js";
 
-export const SEMANTIC_TOKEN_TYPES : SemanticTokenTypes[] = [
+export const SEMANTIC_TOKEN_TYPES: SemanticTokenTypes[] = [
     SemanticTokenTypes.namespace,
     SemanticTokenTypes.type,
     SemanticTokenTypes.class,
@@ -25,14 +25,13 @@ export const SEMANTIC_TOKEN_TYPES : SemanticTokenTypes[] = [
     SemanticTokenTypes.regexp,
     SemanticTokenTypes.operator,
     SemanticTokenTypes.decorator,
-]
+];
 
 /**
  * @template ColorFormat The format the color takes. Color is a RGB color, string is a CSS color.
  */
 export class Highlight {
-    constructor(public range: CustomRange, public color: SemanticTokenTypes) {
-    }
+    constructor(public range: CustomRange, public color: SemanticTokenTypes) {}
     getColorIndex() {
         return SEMANTIC_TOKEN_TYPES.indexOf(this.color);
     }

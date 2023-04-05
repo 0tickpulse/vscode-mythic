@@ -7,7 +7,7 @@ const webpack = require("webpack");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
-    target: "webworker", // vscode extensions run in webworker context for VS Code web 📖 -> https://webpack.js.org/configuration/target/#target
+    target: "node", // vscode extensions run in webworker context for VS Code web 📖 -> https://webpack.js.org/configuration/target/#target
 
     entry: "./client/src/extension.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
     output: {
@@ -32,7 +32,7 @@ const config = {
             // Webpack 5 no longer polyfills Node.js core modules automatically.
             // see https://webpack.js.org/configuration/resolve/#resolvefallback
             // for the list of Node.js core module polyfills.
-            path: require.resolve('path-browserify'),
+            path: require.resolve("path-browserify"),
         },
     },
     module: {
@@ -48,11 +48,6 @@ const config = {
             },
         ],
     },
-    plugins: [
-        // temporary workaround for inconsistent module resolution behavior in ts-loader
-        new webpack.NormalModuleReplacementPlugin(/.*\/+.+\.js$/, (resource) => {
-            resource.request = resource.request.replace(/\.js$/, "");
-        }),
-    ],
+    plugins: [],
 };
 module.exports = config;

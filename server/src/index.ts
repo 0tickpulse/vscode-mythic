@@ -27,10 +27,6 @@ function main() {
         connection,
         documents: { manager },
     } = server;
-    console.log(`Successfully connected!`);
-    console.log(stripIndentation`Mythic Language Server
-        Node Version: ${process.version}
-        Listening to client requests...`);
     connection.listen();
     connection.onInitialize(initializeService);
     connection.onHover(hover);

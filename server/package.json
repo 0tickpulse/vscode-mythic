@@ -30,7 +30,7 @@
         "jest": "^29.5.0"
     },
     "dependencies": {
-        "@types/node": "^18.15.0",
+        "@types/node": "^18.15.11",
         "@types/picomatch": "^2.3.0",
         "js-levenshtein": "^1.1.6",
         "linked-list": "^3.1.0",

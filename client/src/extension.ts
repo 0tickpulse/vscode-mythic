@@ -12,7 +12,7 @@ export async function activate(context: ExtensionContext) {
     const serverModule = context.asAbsolutePath(join("dist", "server.js"));
     log(`Mythic Language Client
         Node Version: ${process.version}
-        File: ${resolve(__filename)}`)
+        File: ${__filename}`)
     log(`Attempting to start server from '${serverModule}'...`);
     const debugOptions: ForkOptions = { execArgv: ["--nolazy"] };
     const serverOptions: ServerOptions = {

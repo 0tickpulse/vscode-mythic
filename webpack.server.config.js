@@ -7,7 +7,7 @@ const webpack = require("webpack");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
-    target: "node", // node for the server 📖 -> https://webpack.js.org/configuration/target/#target
+    target: "node", // vscode extensions run in webworker context for VS Code web 📖 -> https://webpack.js.org/configuration/target/#target
 
     entry: "./server/src/index.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
     output: {
@@ -32,6 +32,7 @@ const config = {
             // Webpack 5 no longer polyfills Node.js core modules automatically.
             // see https://webpack.js.org/configuration/resolve/#resolvefallback
             // for the list of Node.js core module polyfills.
+            path: require.resolve("path-browserify"),
         },
     },
     module: {
