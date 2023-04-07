@@ -1,14 +1,12 @@
+import { Pool, Worker, spawn } from "threads";
 import { Optional, Result } from "tick-ts-utils";
-import { Diagnostic, Hover, SemanticTokenTypes } from "vscode-languageserver";
+import { Diagnostic, Hover } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { Document, LineCounter, parseDocument, visit } from "yaml";
+import { Document } from "yaml";
 import { Highlight } from "../../colors.js";
 import { CustomPosition, CustomRange, r } from "../../utils/positionsAndRanges.js";
 import { YamlSchema } from "../schemaSystem/schemaTypes.js";
-import { join } from "path";
-import picomatch from "picomatch";
-import { PATH_MAP } from "../schemaSystem/data.js";
-import * as workerpool from "workerpool";
+import { ParseSync, parseSync } from "./parseSync.js";
 
 export class DocumentInfo {
     hovers: Hover[] = [];
@@ -62,64 +60,7 @@ export class DocumentInfo {
     }
 }
 
-export function parseSync({ uri, languageId, version, source }: Pick<TextDocument, "uri" | "languageId" | "version"> & { source: string }) {
-    const document = TextDocument.create(uri, languageId, version, source);
-    const documentInfo = new DocumentInfo(document, parseDocument(source));
-    const { yamlAst } = documentInfo;
-    const { contents } = yamlAst;
-    if (contents === null) {
-        return documentInfo;
-    }
-
-    console.time("parse (finding schema)");
-    PATH_MAP.forEach((schema, pathMatcher) => {
-        if (picomatch(pathMatcher)(uri)) {
-            documentInfo.setSchema(schema);
-        }
-    });
-    console.timeEnd("parse (finding schema)");
-
-    const { schema } = documentInfo;
-    documentInfo.yamlAst.errors.forEach((error) =>
-        documentInfo.addError({
-            message: error.message,
-            range: new CustomRange(CustomPosition.fromOffset(source, error.pos[0]), CustomPosition.fromOffset(source, error.pos[1])),
-            severity: 1,
-            source: "Mythic Language Server",
-        }),
-    );
-    if (!schema.isEmpty()) {
-        console.time(`parse (schema validation) (${schema.get().toString()})})`);
-        // console.log(`Schema found for ${uri}: ${schema.get().getDescription()}`);
-        const errors = schema.get().validateAndModify(documentInfo, yamlAst.contents!);
-        console.timeEnd(`parse (schema validation) (${schema.get().toString()})})`);
-        console.time("parse (adding errors)");
-        errors.forEach(
-            (error) =>
-                error.range !== null &&
-                documentInfo.addError({
-                    message: error.message,
-                    range: error.range,
-                    severity: 1,
-                    source: "Mythic Language Server",
-                }),
-        );
-        console.timeEnd("parse (adding errors)");
-    }
-
-    return documentInfo;
-}
-
-export const WORKER_POOL = workerpool.pool(__filename, {
-    onCreateWorker(options) {
-        console.log("[Parser] Created new worker.");
-    },
-    workerType: "auto",
-    workerThreadOpts: {
-        stdin: false,
-        stdout: false,
-    },
-});
+export const WORKER_POOL = Pool(() => spawn<ParseSync>(new Worker("./parseSync")), { size: 4 });
 
 /**
  * Like {@link parseSync} but runs in a separate worker thread instead of the main thread.
@@ -131,20 +72,11 @@ export const WORKER_POOL = workerpool.pool(__filename, {
 export async function parse(document: TextDocument): Promise<Result<DocumentInfo, unknown>> {
     try {
         return Result.ok(
-            await WORKER_POOL.exec("parseSync", [
-                {
-                    uri: document.uri,
-                    languageId: document.languageId,
-                    version: document.version,
-                    source: document.getText(),
-                },
-            ]),
+            await WORKER_POOL.queue((worker) =>
+                worker.parseSync({ uri: document.uri, languageId: document.languageId, version: document.version, source: document.getText() }),
+            ),
         );
     } catch (e) {
         return Result.error(e);
     }
 }
-
-workerpool.worker({
-    parseSync,
-});

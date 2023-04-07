@@ -4,6 +4,7 @@
 
 const path = require("path");
 const webpack = require("webpack");
+const ThreadsPlugin = require("threads-plugin");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
@@ -49,8 +50,13 @@ const config = {
         ],
     },
     plugins: [
+        new ThreadsPlugin(),
         // temporary workaround for inconsistent module resolution behavior in ts-loader
         new webpack.NormalModuleReplacementPlugin(/.*\/+.+\.js$/, (resource) => {
+            // check if the string is in a typescript file
+            if (!resource.contextInfo.issuer.endsWith(".ts")) {
+                return;
+            }
             resource.request = resource.request.replace(/\.js$/, "");
         }),
     ],

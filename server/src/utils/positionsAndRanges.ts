@@ -79,7 +79,12 @@ export class CustomRange {
         return new CustomRange(CustomPosition.fromOffset(source, range[0]), CustomPosition.fromOffset(source, range[2]));
     }
     getFrom(source: string) {
-        return source.substring(this.start.toOffset(source), this.end.toOffset(source));
+        const lines = source.split("\n");
+        let result = "";
+        for (let i = this.start.line; i <= this.end.line; i++) {
+            result += lines[i] + "\n";
+        }
+        return result;
     }
     withStart(start: CustomPosition) {
         return new CustomRange(start, this.end);

@@ -44,8 +44,3 @@ export function log(msg: string) {
 export function deactivate(): Thenable<void> | undefined {
     return client?.stop();
 }
-
-export type Highlight = {
-    color: string;
-    range: Range;
-};
