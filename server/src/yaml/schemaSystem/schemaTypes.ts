@@ -36,10 +36,13 @@ export abstract class YamlSchema {
      * @param value The value to validate and modify
      */
     validateAndModifyTimed(doc: DocumentInfo, value: Node) {
-        console.time(`validateAndModify (${this.toString()})`);
+        console.time(`validateAndModify (${this.getTypeText()})`);
         const errors = this.validateAndModify(doc, value);
-        console.timeEnd(`validateAndModify (${this.toString()})`);
+        console.timeEnd(`validateAndModify (${this.getTypeText()})`);
         return errors;
+    }
+    getTypeText() {
+        return "any";
     }
 }
 
@@ -67,7 +70,7 @@ export class YamlSchemaString extends YamlSchema {
         }
         return [];
     }
-    toString() {
+    getTypeText() {
         return "string";
     }
 }
@@ -113,7 +116,7 @@ export class YamlSchemaNumber extends YamlSchema {
         }
         return [];
     }
-    toString() {
+    getTypeText() {
         let res = this.isInteger ? "integer" : "number";
         if (this.lowerBound !== undefined || this.upperBound !== undefined) {
             res += `(${this.lowerBound?.toString() ?? "-∞"}, ${this.upperBound?.toString() ?? "∞"})`;
@@ -135,7 +138,7 @@ export class YamlSchemaBoolean extends YamlSchema {
         }
         return [];
     }
-    toString() {
+    getTypeText() {
         return "boolean";
     }
 }
@@ -169,8 +172,8 @@ export class YamlSchemaArray extends YamlSchema {
 
         return errors;
     }
-    toString() {
-        return `array(${this.itemSchema.toString()})`;
+    getTypeText() {
+        return `array(${this.itemSchema.getTypeText()})`;
     }
 }
 export class YamlSchemaTuple extends YamlSchema {
@@ -204,8 +207,8 @@ export class YamlSchemaTuple extends YamlSchema {
         this.itemSchema = itemSchema;
         return this;
     }
-    toString() {
-        return `tuple(${this.itemSchema.map((schema) => schema.toString()).join(", ")})`;
+    getTypeText() {
+        return `tuple(${this.itemSchema.map((schema) => schema.getTypeText()).join(", ")})`;
     }
 }
 export class YamlSchemaObject extends YamlSchema {
@@ -264,7 +267,7 @@ export class YamlSchemaObject extends YamlSchema {
                         customRange &&
                             doc.addHover({
                                 range: customRange,
-                                contents: stripIndentation`Property \`${key}\`: \`${schema.toString()}\`
+                                contents: stripIndentation`Property \`${key}\`: \`${schema.getTypeText()}\`
 
                                 ${description}`,
                             });
@@ -295,9 +298,9 @@ export class YamlSchemaObject extends YamlSchema {
 
         return errors;
     }
-    toString() {
+    getTypeText() {
         return `object(${Object.entries(this.properties)
-            .map(([key, { schema }]) => `${key}: ${schema.toString()}`)
+            .map(([key, { schema }]) => `"${key}": ${schema.getTypeText()}`)
             .join(", ")})`;
     }
 }
@@ -328,6 +331,9 @@ export class YamlSchemaMap extends YamlSchema {
 
         return errors;
     }
+    getTypeText() {
+        return `map(${this.values.getTypeText()})`;
+    }
 }
 export class YamlSchemaUnion extends YamlSchema {
     items: readonly YamlSchema[] = [];
@@ -351,8 +357,8 @@ export class YamlSchemaUnion extends YamlSchema {
         }
         return [new SchemaValidationError(`Expected ${this.getDescription()}`, source, value)];
     }
-    toString() {
-        return `${this.items.map((item) => item.toString()).join(" | ")}`;
+    getTypeText() {
+        return `${this.items.map((item) => item.getTypeText()).join(" | ")}`;
     }
 }
 export class YamlSchemaMythicSkill extends YamlSchema {
@@ -369,35 +375,34 @@ export class YamlSchemaMythicSkill extends YamlSchema {
             return [new SchemaValidationError("Expected a skill!", source, value)];
         }
 
-        let rangeOffset = CustomRange.fromYamlRange(source, value.range!);
+        let rangeOffset = value.range!;
         if (value.type === "QUOTE_DOUBLE" || value.type === "QUOTE_SINGLE") {
-            rangeOffset = rangeOffset.addOffsetToStart(source, 1).addOffsetToEnd(source, -1);
+            rangeOffset = [rangeOffset[0] + 1, rangeOffset[1] - 1, rangeOffset[2]];
         }
 
-        const skillLine = rangeOffset
-            .getFrom(source)
-            .split("\n")
-            .map((line, index) => {
-                if (index !== 0) {
-                    return line.substring(rangeOffset.start.character);
-                }
-                return line;
-            })
-            .join("\n");
+        const skillLine = source.substring(rangeOffset[0], rangeOffset[1]);
+        // .split("\n")
+        // .map((line, index) => {
+        //     if (index !== 0) {
+        //         return line.substring(rangeOffset.start.character);
+        //     }
+        //     return line;
+        // })
+        // .join("\n");
 
         const ast = getAst(skillLine);
         if (ast.hasErrors()) {
-            return ast.errors!.map((error) => new SchemaValidationError(error.message, source, value, error.range.add(rangeOffset.start)));
+            return ast.errors!.map((error) => new SchemaValidationError(error.message, source, value, error.range.addOffset(source, rangeOffset[0])));
         }
 
         this.resolver.ifPresent((r) => {
             r.setAst(ast.skillLine!);
-            r.resolveWithDoc(doc, rangeOffset);
+            r.resolveWithDoc(doc, rangeOffset[0]);
         });
 
         return [];
     }
-    toString() {
+    getTypeText() {
         return "skill";
     }
 }
@@ -413,7 +418,7 @@ export class YamlSchemaMythicItem extends YamlSchema {
         const source = doc.base.getText();
         return [];
     }
-    toString() {
+    getTypeText() {
         return "item";
     }
 }
@@ -429,7 +434,7 @@ export class YamlSchemaMythicCondition extends YamlSchema {
         const source = doc.base.getText();
         return [];
     }
-    toString() {
+    getTypeText() {
         return "condition";
     }
 }

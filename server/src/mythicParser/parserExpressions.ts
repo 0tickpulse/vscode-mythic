@@ -7,16 +7,16 @@ import { compare } from "tick-ts-utils";
 export abstract class Expr {
     constructor(readonly parser: Parser, readonly start: Position) {}
 
+    range: CustomRange = r(0, 0, 0, 0);
+
     abstract printAST(): string;
 
     abstract toJson(): object;
 
-    abstract getRange(): CustomRange;
-
     abstract formatSource(): string;
 
     getSource(): string {
-        return this.getRange().getFrom(this.parser.result.source);
+        return this.range.getFrom(this.parser.result.source);
     }
 
     abstract accept<T>(visitor: ExprVisitor<T>): T;
@@ -84,6 +84,14 @@ export class SkillLineExpr extends Expr {
         readonly healthModifier: HealthModifierExpr | undefined,
     ) {
         super(parser, start);
+        const rStart = this.mechanic.range.start;
+        let rEnd = this.mechanic.range.end;
+        for (const expr of [this.mechanic, this.targeter, this.trigger, this.conditions, this.healthModifier].flat()) {
+            if (expr !== undefined && compare(expr.range.end, rEnd) === 1) {
+                rEnd = expr.range.end;
+            }
+        }
+        this.range = r(rStart, rEnd);
     }
 
     override printAST(): string {
@@ -133,17 +141,6 @@ export class SkillLineExpr extends Expr {
         return string;
     }
 
-    override getRange(): CustomRange {
-        const start = this.mechanic.getRange().start;
-        let end = this.mechanic.getRange().end;
-        for (const expr of [this.mechanic, this.targeter, this.trigger, this.conditions, this.healthModifier].flat()) {
-            if (expr !== undefined && compare(expr.getRange().end, end) === 1) {
-                end = expr.getRange().end;
-            }
-        }
-        return r(start, end);
-    }
-
     override accept<T>(visitor: ExprVisitor<T>): T {
         return visitor.visitSkillLineExpr(this);
     }
@@ -159,6 +156,9 @@ export class MechanicExpr extends ExprWithMlcs {
         readonly rightBrace: MythicToken | undefined,
     ) {
         super(parser, start);
+        const rStart = this.identifier.range.start;
+        const rEnd = this.rightBrace?.range.end ?? this.identifier.range.end;
+        this.range = r(rStart, rEnd);
     }
 
     override printAST(): string {
@@ -177,13 +177,7 @@ export class MechanicExpr extends ExprWithMlcs {
     }
 
     getNameRange() {
-        return this.identifier.getRange();
-    }
-
-    override getRange(): CustomRange {
-        const start = this.identifier.getRange().start;
-        const end = this.rightBrace?.getRange().end ?? this.identifier.getRange().end;
-        return r(start, end);
+        return this.identifier.range;
     }
 
     override accept<T>(visitor: ExprVisitor<T>): T {
@@ -202,6 +196,9 @@ export class TargeterExpr extends ExprWithMlcs {
         readonly rightBrace: MythicToken | undefined,
     ) {
         super(parser, start);
+        const rStart = this.identifier.range.start;
+        const rEnd = this.rightBrace?.range.end ?? this.identifier.range.end;
+        this.range = r(rStart, rEnd);
     }
 
     override printAST(): string {
@@ -219,12 +216,6 @@ export class TargeterExpr extends ExprWithMlcs {
         return `@${this.identifier.lexeme}\{${this.mlcs?.map((mlc) => mlc.formatSource()).join(";")}\}`;
     }
 
-    override getRange(): CustomRange {
-        const start = this.identifier.getRange().start;
-        const end = this.rightBrace?.getRange().end ?? this.identifier.getRange().end;
-        return r(start, end);
-    }
-
     override accept<T>(visitor: ExprVisitor<T>): T {
         return visitor.visitTargeterExpr(this);
     }
@@ -240,6 +231,7 @@ export class TriggerExpr extends ExprWithMlcs {
         readonly arg: GenericStringExpr | undefined,
     ) {
         super(parser, start);
+        this.range = r(this.caret.range.start, this.arg?.range.end ?? this.identifier.range.end);
     }
 
     override printAST(): string {
@@ -255,10 +247,6 @@ export class TriggerExpr extends ExprWithMlcs {
 
     override formatSource() {
         return `~${this.identifier.value()}${this.arg !== undefined ? `:${this.arg.value()}` : ""}`;
-    }
-
-    override getRange(): CustomRange {
-        return r(this.caret.getRange().start, this.arg !== undefined ? this.arg.getRange().end : this.identifier.getRange().end);
     }
 
     override accept<T>(visitor: ExprVisitor<T>): T {
@@ -285,6 +273,9 @@ export class InlineConditionExpr extends ExprWithMlcs {
         readonly trigger: boolean,
     ) {
         super(parser, start);
+        const rStart = this.question.range.start;
+        const rEnd = this.rightBrace?.range.end ?? this.identifier.range.end;
+        this.range = r(rStart, rEnd);
     }
 
     override printAST(): string {
@@ -308,12 +299,6 @@ export class InlineConditionExpr extends ExprWithMlcs {
             .join(";")}\}`;
     }
 
-    override getRange(): CustomRange {
-        const start = this.identifier.getRange().start;
-        const end = this.rightBrace?.getRange().end ?? this.identifier.getRange().end;
-        return r(start, end);
-    }
-
     override accept<T>(visitor: ExprVisitor<T>): T {
         return visitor.visitInlineConditionExpr(this);
     }
@@ -329,6 +314,7 @@ export class MlcExpr extends Expr {
         readonly semicolon: MythicToken | undefined,
     ) {
         super(parser, start);
+        this.range = r(this.identifier.range.start, this.semicolon?.range.end ?? this.value.range.end);
     }
 
     override printAST(): string {
@@ -347,11 +333,7 @@ export class MlcExpr extends Expr {
     }
 
     getKeyRange() {
-        return this.identifier.getRange();
-    }
-
-    override getRange(): CustomRange {
-        return r(this.identifier.getRange().start, this.value.getRange().end);
+        return this.identifier.range;
     }
 
     override accept<T>(visitor: ExprVisitor<T>): T {
@@ -362,6 +344,7 @@ export class MlcExpr extends Expr {
 export class MlcValueExpr extends Expr {
     constructor(readonly parser: Parser, readonly start: CustomPosition, readonly identifiers: (MythicToken[] | MlcPlaceholderExpr)[]) {
         super(parser, start);
+        this.range = r(this.start, this.#getEnd());
     }
 
     override printAST(): string {
@@ -380,20 +363,16 @@ export class MlcValueExpr extends Expr {
         return this.identifiers.map((id) => (id instanceof MlcPlaceholderExpr ? id.formatSource() : id.map((j) => j.lexeme).join(""))).join("");
     }
 
-    override getRange(): CustomRange {
-        return r(this.start, this.#getEnd());
-    }
-
     #getEnd(): CustomPosition {
         if (this.identifiers.length === 0) {
             return this.start;
         }
         const last = this.identifiers[this.identifiers.length - 1];
         if (last instanceof MlcPlaceholderExpr) {
-            return last.greaterThanBracket.getRange().end;
+            return last.greaterThanBracket.range.end;
         }
         if (last.length > 0) {
-            return last[last.length - 1].getRange().end;
+            return last[last.length - 1].range.end;
         }
         return this.start;
     }
@@ -413,6 +392,7 @@ export class MlcPlaceholderExpr extends Expr {
         readonly greaterThanBracket: MythicToken,
     ) {
         super(parser, start);
+        this.range = r(this.lessThanBracket.range.start, this.greaterThanBracket.range.end);
     }
 
     override printAST(): string {
@@ -429,10 +409,6 @@ export class MlcPlaceholderExpr extends Expr {
         return `<${this.identifiers.map((i) => i[0].value() + (i[2]?.map((mlc) => mlc.formatSource()).join(";") ?? "")).join(".")}>`;
     }
 
-    override getRange(): CustomRange {
-        return r(this.lessThanBracket.getRange().start, this.greaterThanBracket.getRange().end);
-    }
-
     override accept<T>(visitor: ExprVisitor<T>): T {
         return visitor.visitMlcPlaceholderExpr(this);
     }
@@ -447,6 +423,7 @@ export class InlineSkillExpr extends Expr {
         readonly rightSquareBracket: MythicToken,
     ) {
         super(parser, start);
+        this.range = r(this.leftSquareBracket.range.start, this.rightSquareBracket.range.end);
     }
 
     override printAST(): string {
@@ -461,10 +438,6 @@ export class InlineSkillExpr extends Expr {
 
     override formatSource() {
         return `[${this.skills.map((skill) => `- ${skill[1].formatSource()}`).join(" ")}]`;
-    }
-
-    override getRange(): CustomRange {
-        return r(this.leftSquareBracket.getRange().start, this.rightSquareBracket.getRange().end);
     }
 
     override accept<T>(visitor: ExprVisitor<T>): T {
@@ -484,6 +457,11 @@ export class HealthModifierExpr extends Expr {
         readonly valueOrRange: [MythicToken, MythicToken?] | [[MythicToken, MythicToken?], [MythicToken, MythicToken?]],
     ) {
         super(parser, start);
+        if (this.isRange(this.valueOrRange)) {
+            this.range = r(this.operator.range.start, this.valueOrRange[1][0].range.end);
+        } else {
+            this.range = r(this.operator.range.start, this.valueOrRange[0].range.end);
+        }
     }
 
     override formatSource(): string {
@@ -515,14 +493,6 @@ export class HealthModifierExpr extends Expr {
         return Array.isArray(valueOrRange[0]);
     }
 
-    override getRange(): CustomRange {
-        if (this.isRange(this.valueOrRange)) {
-            return r(this.operator.getRange().start, this.valueOrRange[1][0].getRange().end);
-        } else {
-            return r(this.operator.getRange().start, this.valueOrRange[0].getRange().end);
-        }
-    }
-
     override accept<T>(visitor: ExprVisitor<T>): T {
         return visitor.visitHealthModifierExpr(this);
     }
@@ -531,6 +501,8 @@ export class HealthModifierExpr extends Expr {
 export class GenericStringExpr extends Expr {
     constructor(readonly parser: Parser, readonly start: Position, readonly values: MythicToken[]) {
         super(parser, start);
+        const last = this.values[this.values.length - 1];
+        this.range = r(this.values[0].range.start, last.range.end);
     }
 
     override printAST(): string {
@@ -549,11 +521,6 @@ export class GenericStringExpr extends Expr {
 
     value() {
         return this.values.map((value) => value.lexeme).join("");
-    }
-
-    override getRange(): CustomRange {
-        const last = this.values[this.values.length - 1];
-        return r(this.values[0].getRange().start, last.getRange().end);
     }
 
     override accept<T>(visitor: ExprVisitor<T>): T {

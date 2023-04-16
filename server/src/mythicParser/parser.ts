@@ -24,7 +24,7 @@ import {
     MlcValueExpr,
     SkillLineExpr,
     TargeterExpr,
-    TriggerExpr
+    TriggerExpr,
 } from "./parserExpressions.js";
 import { MythicScannerResult, MythicToken, MythicTokenType } from "./scanner.js";
 
@@ -77,6 +77,7 @@ export class Parser {
         }
     }
     parseMythicSkill(): MythicSkillParseResult {
+        this.#current = 0;
         if (this.result.errors?.length ?? 0 > 0) {
             return MythicSkillParseResult.fromErrors(this.result.errors ?? []);
         }
@@ -89,14 +90,22 @@ export class Parser {
             throw e;
         }
     }
+    /**
+     * Used for debugging.
+     * Comment out the console.log line to disable.
+     */
+    #log(msg: string) {
+        // console.log(`[Parser] ${msg} (current: ${this.#current})`);
+    }
     #skillLine(...exitTypes: MythicTokenType[]) {
-        this.#completion(
-            getAllMechanicsAndAliases().map((m): CompletionItem => {
-                const item: CompletionItem = { label: m, kind: CompletionItemKind.Function };
-                item.detail = getHover("mechanic", m).map(h => h.contents.toString()).otherwise(undefined);
-                return item;
-            })
-        );
+        this.#log("skillLine");
+        // this.#completion(
+        //     getAllMechanicsAndAliases().map((m): CompletionItem => {
+        //         const item: CompletionItem = { label: m, kind: CompletionItemKind.Function };
+        //         item.detail = getHover("mechanic", m).map(h => h.contents.toString()).otherwise(undefined);
+        //         return item;
+        //     })
+        // );
         const mechanic = this.#mechanic();
         let targeter: TargeterExpr | undefined = undefined;
         let trigger: TriggerExpr | undefined = undefined;
@@ -106,7 +115,7 @@ export class Parser {
 
         while (!this.#isAtEnd()) {
             this.#consumeWhitespace();
-            this.#completionGeneric(["At", "Tilde", "Question", "Number", "Equal", "GreaterThan", "LessThan", ...exitTypes]);
+            // this.#completionGeneric(["At", "Tilde", "Question", "Number", "Equal", "GreaterThan", "LessThan", ...exitTypes]);
             if (this.#isAtEnd()) {
                 break;
             }
@@ -138,6 +147,7 @@ export class Parser {
         return new SkillLineExpr(this, this.#currentPosition(), mechanic, targeter, trigger, conditions, chance, healthModifier);
     }
     #mechanic() {
+        this.#log("mechanic");
         const name = this.#genericString(["LeftBrace", "Space"], "Expected mechanic name!");
         if (name.values.length === 0) {
             throw this.#error(this.#peek(), "Expected mechanic name!");
@@ -151,16 +161,17 @@ export class Parser {
         return new MechanicExpr(this, this.#currentPosition(), name, undefined, [], undefined);
     }
     #targeter() {
+        this.#log("targeter");
         const at = this.#previous();
-        this.#completion(
-            getAllTargetersAndAliases().map((t): CompletionItem => {
-                const item: CompletionItem = { label: t, kind: CompletionItemKind.Function };
-                item.detail = getHover("targeter", t).map(h => h.contents.toString()).otherwise(undefined);
-                return item;
-            })
-        );
+        // this.#completion(
+        //     getAllTargetersAndAliases().map((t): CompletionItem => {
+        //         const item: CompletionItem = { label: t, kind: CompletionItemKind.Function };
+        //         item.detail = getHover("targeter", t).map(h => h.contents.toString()).otherwise(undefined);
+        //         return item;
+        //     })
+        // );
         const name = this.#consume("Identifier", "Expected targeter name!");
-        this.#completionGeneric(["{"]);
+        // this.#completionGeneric(["{"]);
         if (this.#match("LeftBrace")) {
             const leftBrace = this.#previous();
             const mlc = this.#mlc();
@@ -170,6 +181,7 @@ export class Parser {
         return new TargeterExpr(this, this.#currentPosition(), at, name, undefined, [], undefined);
     }
     #trigger() {
+        this.#log("trigger");
         const caret = this.#previous();
         const name = this.#genericString(["LeftBrace", "Space"], "Expected trigger name!");
         let arg: GenericStringExpr | undefined = undefined;
@@ -181,26 +193,27 @@ export class Parser {
         return new TriggerExpr(this, this.#currentPosition(), caret, name, colon, arg);
     }
     #inlineCondition() {
+        this.#log("inlineCondition");
         const question = this.#previous();
         let not = false;
         let trigger = false;
-        this.#completionGeneric(["!", "~"]);
+        // this.#completionGeneric(["!", "~"]);
         if (this.#match("Exclamation")) {
             not = true;
         }
-        this.#completionGeneric(not ? ["~"] : ["!", "~"]);
+        // this.#completionGeneric(not ? ["~"] : ["!", "~"]);
         if (this.#match("Tilde")) {
             trigger = true;
         }
-        this.#completion(
-            getAllConditionsAndAliases().map((c): CompletionItem => {
-                const item: CompletionItem = { label: c, kind: CompletionItemKind.Function };
-                item.detail = getHover("condition", c).map(h => h.contents.toString()).otherwise(undefined);
-                return item;
-            })
-        );
+        // this.#completion(
+        //     getAllConditionsAndAliases().map((c): CompletionItem => {
+        //         const item: CompletionItem = { label: c, kind: CompletionItemKind.Function };
+        //         item.detail = getHover("condition", c).map(h => h.contents.toString()).otherwise(undefined);
+        //         return item;
+        //     })
+        // );
         const name = this.#consume("Identifier", "Expected inline condition name!");
-        this.#completionGeneric(["{"]);
+        // this.#completionGeneric(["{"]);
         if (this.#match("LeftBrace")) {
             const leftBrace = this.#previous();
             const mlc = this.#mlc();
@@ -211,6 +224,7 @@ export class Parser {
     }
 
     #healthModifier() {
+        this.#log("healthModifier");
         // healthModifier = ( ( "<" | ">" ) + number ( + percent )? ) | ( "=" + number ( + percent )? ( + "-" + number ( + percent )? )? )\
         const operator = this.#consumeAny(["Equal", "GreaterThan", "LessThan"], "Expected health modifier operator!");
         const min: [MythicToken, MythicToken?] = [this.#consume("Number", "Expected health modifier value!")];
@@ -228,6 +242,7 @@ export class Parser {
     }
 
     #mlc() {
+        this.#log("mlc");
         const mlcs: MlcExpr[] = [];
         do {
             let semicolon: MythicToken | undefined = undefined;
@@ -240,23 +255,27 @@ export class Parser {
             }
             this.#consumeWhitespace();
             const key = this.#consume("Identifier", "Expected mlc key!");
-            this.#completionGeneric(["="]);
+            // this.#completionGeneric(["="]);
             const equals = this.#consume("Equal", "Expected '=' after mlc key!");
             const value = this.#mlcValue(key);
             mlcs.push(new MlcExpr(this, this.#currentPosition(), key, equals, value, semicolon));
-            this.#completionGeneric([";", "}"]);
+            // this.#completionGeneric([";", "}"]);
             this.#consumeWhitespace();
-            this.#completionGeneric([";", "}"]);
+            // this.#completionGeneric([";", "}"]);
             this.#consumeWhitespace();
         } while (this.#match("Semicolon"));
         return mlcs;
     }
     #mlcValue(key: MythicToken) {
+        this.#log("mlcValue");
         const parts: (MythicToken[] | MlcPlaceholderExpr)[] = [];
         let start = this.#current;
         // special case for inline skills
         // TODO this is a bit hacky, maybe find a better way to do this
-        if (this.#match("LeftSquareBracket") && ["skill", "skills", "s", "ontick", "onhit", "onend", "ot", "oh", "oe"].includes(key.lexeme?.toLowerCase() ?? "")) {
+        if (
+            this.#match("LeftSquareBracket") &&
+            ["skill", "skills", "s", "ontick", "onhit", "onend", "ot", "oh", "oe"].includes(key.lexeme?.toLowerCase() ?? "")
+        ) {
             const inline = this.#inlineSkill();
             return inline;
         }
@@ -282,6 +301,7 @@ export class Parser {
         return new MlcValueExpr(this, this.#currentPosition(), parts);
     }
     #placeholder() {
+        this.#log("placeholder");
         // genericString ( + "." + genericString )*
         const leftSquareBracket = this.#previous();
         const parts: [GenericStringExpr, MythicToken?, MlcExpr[]?, MythicToken?][] = [];
@@ -293,7 +313,7 @@ export class Parser {
             part.push(this.#consume("RightBrace", "Expected '}' after placeholder mlc!"));
         }
         parts.push(part);
-        this.#completionGeneric([".", ">"]);
+        // this.#completionGeneric([".", ">"]);
         while (this.#match("Dot") && !this.#isAtEnd()) {
             dots.push(this.#previous());
             const part: [GenericStringExpr, MythicToken?, MlcExpr[]?, MythicToken?] = [this.#genericString(["GreaterThan", "Dot", "LeftBrace"])];
@@ -303,19 +323,20 @@ export class Parser {
                 part.push(this.#consume("RightBrace", "Expected '}' after placeholder mlc!"));
             }
             parts.push(part);
-            this.#completionGeneric([".", ">"]);
+            // this.#completionGeneric([".", ">"]);
         }
         const rightSquareBracket = this.#consume("GreaterThan", "Expected '>' after placeholder!");
         return new MlcPlaceholderExpr(this, this.#currentPosition(), leftSquareBracket, parts, dots, rightSquareBracket);
     }
     #inlineSkill() {
+        this.#log("inlineSkill");
         const leftSquareBracket = this.#previous();
         const dashesAndSkills: [MythicToken, SkillLineExpr][] = [];
         while (!this.#check("RightSquareBracket") && !this.#isAtEnd()) {
-            this.#completionGeneric(["- ", "]"]);
+            // this.#completionGeneric(["- ", "]"]);
             // optional whitespace
             this.#consumeWhitespace();
-            this.#completionGeneric(["- ", "]"]);
+            // this.#completionGeneric(["- ", "]"]);
             // dash
             const dash = this.#consume("Dash", "Expected '-' after '['!");
 
@@ -332,7 +353,8 @@ export class Parser {
         return new InlineSkillExpr(this, this.#currentPosition(), leftSquareBracket, dashesAndSkills, rightSquareBracket);
     }
 
-    #genericString(end: MythicTokenType[], error?: string) {
+    #genericString(end: MythicTokenType[], error: string = "Expected a string!") {
+        this.#log("genericString");
         const start = this.#current;
         while (!this.#checkAny(...end) && !this.#isAtEnd()) {
             if (this.#check("LeftBrace")) {
@@ -348,8 +370,14 @@ export class Parser {
             this.#advance();
         }
         const string = this.#tokens.slice(start, this.#current);
-        if (string.length === 0 && error !== undefined) {
-            throw this.#error(this.#peek(), error);
+        if (string.length === 0) {
+            throw this.#error(
+                this.#peek(),
+                `${error} (End: ${end.join(", ")}, start: ${start}, current: ${this.#current}, checkAny: ${this.#checkAny(...end)}, currentType ${
+                    this.#peek()?.type ?? ""
+                })`,
+            );
+            // throw this.#error(this.#peek(), error);
         }
         return new GenericStringExpr(this, this.#currentPosition(), string);
     }
@@ -429,27 +457,27 @@ export class Parser {
         return this.#tokens[this.#current - 1];
     }
     #error(token: MythicToken, message: string): SyntaxError {
-        return new SyntaxError(token.getRange(), this.result.source ?? "", message, token);
+        return new SyntaxError(token.range, this.result.source ?? "", message, token);
     }
     #completion(completions: CompletionItem[]): void {
         if (!this.#isCompleting) {
             return;
         }
-        const offset = this.#peek().getRange().end;
-        this.#completions = completions;
+        const offset = this.#peek().range.end;
+        // this.#completions = completions;
     }
     #completionGeneric(completions: string[]): void {
         if (!this.#isCompleting) {
             return;
         }
-        const offset = this.#peek().getRange().end;
-        this.#completions = completions.map((c) => ({
-            label: c,
-            kind: CompletionItemKind.Text
-        }));
+        const offset = this.#peek().range.end;
+        // this.#completions = completions.map((c) => ({
+        //     label: c,
+        //     kind: CompletionItemKind.Text
+        // }));
     }
 
     #currentPosition(): CustomPosition {
-        return this.#peek().getRange().start;
+        return this.#peek().range.start;
     }
 }

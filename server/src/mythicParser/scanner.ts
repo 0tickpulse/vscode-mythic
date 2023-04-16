@@ -39,6 +39,7 @@ function maxLength(values: string[]) {
 }
 
 export class MythicToken {
+    range: CustomRange;
     constructor(
         readonly source: string,
         readonly type: MythicTokenType,
@@ -47,7 +48,9 @@ export class MythicToken {
         readonly line: number,
         readonly start: number,
         readonly current: number,
-    ) {}
+    ) {
+        this.range = r(CustomPosition.fromOffset(this.source, this.start), CustomPosition.fromOffset(this.source, this.current));
+    }
 
     toString() {
         return `${this.type.padEnd(maxLength(Object.values(TOKEN_TYPE)))} ${this.lexeme} (${this.literal})`;
@@ -59,10 +62,6 @@ export class MythicToken {
 
     getLine(offset = 0) {
         return CustomPosition.fromOffset(this.source, this.current + offset).line + 1;
-    }
-
-    getRange(): CustomRange {
-        return r(CustomPosition.fromOffset(this.source, this.start), CustomPosition.fromOffset(this.source, this.current));
     }
 }
 

@@ -1,3 +1,4 @@
+import picomatch from "picomatch";
 import {
     YamlSchema,
     YamlSchemaArray as YArr,
@@ -18,7 +19,14 @@ export const mythicSkillSchema: YamlSchema = new YMap(
     }),
 );
 
-export const PATH_MAP = new Map([
-    ["**/plugins/MythicMobs/Skills/*.yml", mythicSkillSchema],
-    ["**/plugins/MythicMobs/Packs/*/Skills/*.yml", mythicSkillSchema],
-]);
+export const PATH_MAP = new Map<string, { schema: YamlSchema; picoMatch: picomatch.Matcher }>();
+
+function addPath(path: string, schema: YamlSchema) {
+    PATH_MAP.set(path, {
+        schema,
+        picoMatch: picomatch(path)
+    });
+}
+
+addPath("**/plugins/MythicMobs/Skills/*.yml", mythicSkillSchema);
+addPath("**/plugins/MythicMobs/Packs/*/Skills/*.yml", mythicSkillSchema);

@@ -9,19 +9,43 @@
 			"program": "${file}",
 			"cwd": "${workspaceRoot}",
 			"runtimeExecutable": "node",
-
 		},
 		{
 			"type": "extensionHost",
 			"request": "launch",
 			"name": "Launch Client",
 			"runtimeExecutable": "${execPath}",
-			"args": ["--extensionDevelopmentPath=${workspaceRoot}", "--verbose"],
-			"outFiles": ["${workspaceRoot}/dist/client.js"],
+			"args": [
+				"--extensionDevelopmentPath=${workspaceRoot}",
+				"--verbose"
+			],
+			"outFiles": [
+				"${workspaceRoot}/dist/client.js"
+			],
 			"preLaunchTask": {
 				"type": "npm",
 				"script": "watch"
 			}
 		},
+		{
+			"type": "node",
+			"request": "attach",
+			"name": "Attach to Server",
+			"port": 6009,
+			"restart": true,
+			"outFiles": [
+				"${workspaceRoot}/dist/server.js"
+			],
+			
+		}
 	],
+	"compounds": [
+		{
+			"name": "Client + Server",
+			"configurations": [
+				"Launch Client",
+				"Attach to Server"
+			]
+		}
+	]
 }

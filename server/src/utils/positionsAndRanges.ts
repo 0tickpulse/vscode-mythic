@@ -101,11 +101,34 @@ export class CustomRange {
     addOffsetToEnd(source: string, offset: number) {
         return new CustomRange(this.start, this.end.addOffset(source, offset));
     }
+    addOffset(source: string, offset: number) {
+        return new CustomRange(this.start.addOffset(source, offset), this.end.addOffset(source, offset));
+    }
     toString() {
         return `Range(${this.start}, ${this.end})`;
     }
     contains(position: CustomPosition) {
         return this.start.compareTo(position) <= 0 && this.end.compareTo(position) >= 0;
+    }
+    /**
+     * Adds offsets to multiple ranges. Faster than calling addOffset multiple times as it only splits the source once and does not use methods like toOffset which adds loops.
+     */
+    static addMultipleOffsets(source: string, ranges: CustomRange[], offset: number): CustomRange[] {
+        const lines = source.split("\n");
+        let offsetSoFar = 0;
+        let line = 0;
+        let character = 0;
+        for (let i = 0; i < lines.length; i++) {
+            const lineLength = lines[i].length + 1;
+            if (offsetSoFar + lineLength > offset) {
+                line = i;
+                character = offset - offsetSoFar;
+                break;
+            }
+            offsetSoFar += lineLength;
+        }
+        const offsetPosition = new CustomPosition(line, character);
+        return ranges.map((range) => new CustomRange(range.start.add(offsetPosition), range.end.add(offsetPosition)));
     }
 }
 

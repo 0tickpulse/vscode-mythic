@@ -8,10 +8,10 @@ export default (params: SemanticTokensParams): SemanticTokens => {
     const { uri } = params.textDocument;
     const doc = documents.getDocument(uri);
     if (!doc) {
+        console.log(`[semanticTokensService] ${params.textDocument.uri} (no document)`);
         return { data: [] };
     }
     const { highlights } = doc;
-    const source = doc.base.getText();
 
     console.log(`Processing ${highlights.length} highlights`);
     // console.time(`[semanticTokensService] ${params.textDocument.uri} (sort)`);

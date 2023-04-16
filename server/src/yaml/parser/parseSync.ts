@@ -6,7 +6,16 @@ import { PATH_MAP } from "../schemaSystem/data.js";
 import { DocumentInfo } from "./parser.js";
 import { expose } from "threads";
 
-export function parseSync({ uri, languageId, version, source }: Pick<TextDocument, "uri" | "languageId" | "version"> & { source: string }) {
+export function parseSync(doc: TextDocument) {
+    return parseSyncInner({
+        uri: doc.uri,
+        languageId: doc.languageId,
+        version: doc.version,
+        source: doc.getText(),
+    });
+}
+
+export function parseSyncInner({ uri, languageId, version, source }: Pick<TextDocument, "uri" | "languageId" | "version"> & { source: string }) {
     const document = TextDocument.create(uri, languageId, version, source);
     const documentInfo = new DocumentInfo(document, parseDocument(source));
     const { yamlAst } = documentInfo;
@@ -16,8 +25,9 @@ export function parseSync({ uri, languageId, version, source }: Pick<TextDocumen
     }
 
     console.time("parse (finding schema)");
-    PATH_MAP.forEach((schema, pathMatcher) => {
-        if (picomatch(pathMatcher)(uri)) {
+    PATH_MAP.forEach(({ schema, picoMatch }, pathMatcher) => {
+        if (picoMatch(uri)) {
+            console.log(`Schema found for ${uri}: ${schema.getTypeText()} (picoMatch)`);
             documentInfo.setSchema(schema);
         }
     });
@@ -33,10 +43,10 @@ export function parseSync({ uri, languageId, version, source }: Pick<TextDocumen
         }),
     );
     if (!schema.isEmpty()) {
-        console.time(`parse (schema validation) (${schema.get().toString()})})`);
+        console.time(`parse (schema validation) (${schema.get().getTypeText()})})`);
         // console.log(`Schema found for ${uri}: ${schema.get().getDescription()}`);
         const errors = schema.get().validateAndModify(documentInfo, yamlAst.contents!);
-        console.timeEnd(`parse (schema validation) (${schema.get().toString()})})`);
+        console.timeEnd(`parse (schema validation) (${schema.get().getTypeText()})})`);
         console.time("parse (adding errors)");
         errors.forEach(
             (error) =>
@@ -54,8 +64,4 @@ export function parseSync({ uri, languageId, version, source }: Pick<TextDocumen
     return documentInfo;
 }
 
-export type ParseSync = { parseSync: typeof parseSync };
-
-expose({
-    parseSync,
-});
+export type ParseSync = { parseSync: typeof parseSyncInner };

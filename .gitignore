@@ -1,6 +1,7 @@
 
 # Generated documentation
 docs/
+
 **/out/
 **/node_modules/
 **.vsix
@@ -9,3 +10,6 @@ docs/
 
 # Webpack build output
 dist/
+
+# Pnpm lockfile
+**/pnpm-lock.yaml

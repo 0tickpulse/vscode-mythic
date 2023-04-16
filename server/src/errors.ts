@@ -40,13 +40,13 @@ export class SyntaxError extends Error {
 }
 
 export class InvalidFieldValueError extends SyntaxError {
-    constructor(source: string, message: string, public field: MythicFieldType, expr: MlcValueExpr , range = expr.getRange(), code = 0) {
+    constructor(source: string, message: string, public field: MythicFieldType, expr: MlcValueExpr , range = expr.range, code = 0) {
         super(range, source, message, undefined, code);
     }
 }
 
 export class ResolverError extends SyntaxError {
-    constructor(source: string, message: string, expr: Expr, range = expr.getRange(), skill?: SkillLineExpr, code = 0) {
+    constructor(source: string, message: string, expr: Expr, range = expr.range, skill?: SkillLineExpr, code = 0) {
         super(range, source, message, undefined, code);
     }
 }
@@ -59,7 +59,8 @@ export class UnknownMechanicResolverError extends ResolverError {
         if (closest !== undefined) {
             message += `. Did you mean '${closest}'?`;
         }
-        super(source, message, mechanic, mechanic.getNameRange(), skill, 1);
+        const range = mechanic.identifier.range;
+        super(source, message, mechanic, range, skill, 1);
         this.setCodeDescription("unknown-mechanic");
         this.setSeverity(DiagnosticSeverity.Error);
     }
