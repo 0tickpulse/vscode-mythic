@@ -379,16 +379,18 @@ export class YamlSchemaMythicSkill extends YamlSchema {
         if (value.type === "QUOTE_DOUBLE" || value.type === "QUOTE_SINGLE") {
             rangeOffset = [rangeOffset[0] + 1, rangeOffset[1] - 1, rangeOffset[2]];
         }
+        const customRangeOffset = CustomRange.fromYamlRange(source, rangeOffset);
 
-        const skillLine = source.substring(rangeOffset[0], rangeOffset[1]);
-        // .split("\n")
-        // .map((line, index) => {
-        //     if (index !== 0) {
-        //         return line.substring(rangeOffset.start.character);
-        //     }
-        //     return line;
-        // })
-        // .join("\n");
+        const skillLine = source
+            .substring(rangeOffset[0], rangeOffset[1])
+            .split("\n")
+            .map((line, index) => {
+                if (index !== 0) {
+                    return line.substring(customRangeOffset.start.character);
+                }
+                return line;
+            })
+            .join("\n");
 
         const ast = getAst(skillLine);
         if (ast.hasErrors()) {
