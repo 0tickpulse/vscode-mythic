@@ -1,6 +1,6 @@
 import { Range } from "vscode-languageserver-textdocument";
 import { SyntaxError } from "../errors.js";
-import { CustomPosition, CustomRange, r } from "../utils/positionsAndRanges.js";
+import { CustomPosition, CustomRange, NumericRange, r } from "../utils/positionsAndRanges.js";
 
 export const TOKEN_TYPE = [
     "LeftSquareBracket",
@@ -39,7 +39,7 @@ function maxLength(values: string[]) {
 }
 
 export class MythicToken {
-    range: CustomRange;
+    range: NumericRange;
     constructor(
         readonly source: string,
         readonly type: MythicTokenType,
@@ -49,7 +49,7 @@ export class MythicToken {
         readonly start: number,
         readonly current: number,
     ) {
-        this.range = r(CustomPosition.fromOffset(this.source, this.start), CustomPosition.fromOffset(this.source, this.current));
+        this.range = new NumericRange(start, current);
     }
 
     toString() {
@@ -210,7 +210,7 @@ export class MythicScanner {
         this.#tokens.push(new MythicToken(this.#source, type, text, literal, this.#line, this.#start, this.#current));
     }
 
-    #getCurrentRange(): CustomRange {
-        return r(this.#line, this.#start, this.#line, this.#current);
+    #getCurrentRange(): NumericRange {
+        return new NumericRange(this.#start, this.#current);
     }
 }

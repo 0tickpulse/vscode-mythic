@@ -1,5 +1,5 @@
 import { SemanticTokenTypes } from "vscode-languageserver";
-import { CustomRange } from "./utils/positionsAndRanges.js";
+import { CustomRange, NumericRange } from "./utils/positionsAndRanges.js";
 
 export const SEMANTIC_TOKEN_TYPES: SemanticTokenTypes[] = [
     SemanticTokenTypes.namespace,

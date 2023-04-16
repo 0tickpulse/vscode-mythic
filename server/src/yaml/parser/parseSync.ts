@@ -53,7 +53,7 @@ export function parseSyncInner({ uri, languageId, version, source }: Pick<TextDo
                 error.range !== null &&
                 documentInfo.addError({
                     message: error.message,
-                    range: error.range,
+                    range: error.range.toCustomRange(source),
                     severity: 1,
                     source: "Mythic Language Server",
                 }),

@@ -3,7 +3,7 @@ import { MythicToken } from "./mythicParser/scanner.js";
 import { Expr, GenericStringExpr, MechanicExpr, MlcPlaceholderExpr, MlcValueExpr, SkillLineExpr } from "./mythicParser/parserExpressions.js";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver/node.js";
 import { getClosestTo } from "./utils/utils.js";
-import { CustomRange } from "./utils/positionsAndRanges.js";
+import { CustomRange, NumericHover, NumericRange } from "./utils/positionsAndRanges.js";
 import { getClosestMatch } from "./minecraftData/services.js";
 import { MythicField, MythicFieldType } from "./minecraftData/models.js";
 
@@ -11,7 +11,7 @@ export class SyntaxError extends Error {
     #codeDescription: string | undefined;
     #severity: DiagnosticSeverity = 1;
     constructor(
-        public readonly range: CustomRange,
+        public readonly range: NumericRange,
         public readonly source: string,
         public message: string,
         public readonly token?: MythicToken,
@@ -22,7 +22,17 @@ export class SyntaxError extends Error {
     toDiagnostic(): Diagnostic {
         const diagnostic: Diagnostic = {
             message: this.message,
-            range: this.range,
+            range: this.range.toCustomRange(this.source),
+            severity: this.#severity,
+            code: this.code,
+            source: "Mythic Language Server",
+        };
+        return diagnostic;
+    }
+    toDiagnosticWithOffset(offset: number): Diagnostic {
+        const diagnostic: Diagnostic = {
+            message: this.message,
+            range: this.range.addOffset(offset).toCustomRange(this.source),
             severity: this.#severity,
             code: this.code,
             source: "Mythic Language Server",

@@ -1,5 +1,5 @@
 import { Comparable, flattenComparison } from "tick-ts-utils";
-import { Range } from "vscode-languageserver";
+import { Hover, MarkedString, MarkupContent, Range } from "vscode-languageserver";
 import { Position } from "vscode-languageserver-textdocument";
 import { Range as YamlRange } from "yaml";
 
@@ -129,6 +129,48 @@ export class CustomRange {
         }
         const offsetPosition = new CustomPosition(line, character);
         return ranges.map((range) => new CustomRange(range.start.add(offsetPosition), range.end.add(offsetPosition)));
+    }
+}
+
+/**
+ * A range made out of two numbers instead of positions.
+ * Less convenient, but much faster.
+ */
+export class NumericRange {
+    constructor(public start: number, public end: number) {}
+    static fromYamlRange(range: YamlRange) {
+        return new NumericRange(range[0], range[2]);
+    }
+    toString() {
+        return `NumericRange(${this.start}, ${this.end})`;
+    }
+    getFrom(source: string) {
+        return source.substring(this.start, this.end);
+    }
+    addOffset(offset: number) {
+        return new NumericRange(this.start + offset, this.end + offset);
+    }
+    toCustomRange(source: string) {
+        return new CustomRange(CustomPosition.fromOffset(source, this.start), CustomPosition.fromOffset(source, this.end));
+    }
+    contains(position: number) {
+        return this.start <= position && this.end >= position;
+    }
+    withStart(start: number) {
+        return new NumericRange(start, this.end);
+    }
+    withEnd(end: number) {
+        return new NumericRange(this.start, end);
+    }
+}
+
+export class NumericHover {
+    constructor(public contents: MarkupContent | MarkedString | MarkedString[], public range: NumericRange) {}
+    toHover(source: string) {
+        return {
+            contents: this.contents,
+            range: this.range.toCustomRange(source),
+        }
     }
 }
 

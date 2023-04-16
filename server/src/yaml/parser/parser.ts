@@ -4,19 +4,19 @@ import { Diagnostic, Hover } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Document } from "yaml";
 import { Highlight } from "../../colors.js";
-import { CustomPosition, CustomRange, r } from "../../utils/positionsAndRanges.js";
+import { CustomPosition, CustomRange, NumericHover, r } from "../../utils/positionsAndRanges.js";
 import { YamlSchema } from "../schemaSystem/schemaTypes.js";
 import { ParseSync, parseSyncInner } from "./parseSync.js";
 
 export class DocumentInfo {
     /** cached source */
     source: string;
-    hovers: Hover[] = [];
+    hovers: NumericHover[] = [];
     schema: Optional<YamlSchema> = Optional.empty();
     errors: Diagnostic[] = [];
     // highlights: Map<number, Color> = new Map();
     #highlights: Highlight[] = [];
-    constructor(public base: TextDocument, public yamlAst: Document, hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
+    constructor(public base: TextDocument, public yamlAst: Document, hovers?: NumericHover[], schema?: YamlSchema, errors?: Diagnostic[]) {
         this.source = base.getText();
         this.hovers = hovers ?? [];
         this.schema = Optional.of(schema);
@@ -25,7 +25,7 @@ export class DocumentInfo {
     setSchema(schema: YamlSchema) {
         this.schema = Optional.of(schema);
     }
-    addHover(hover: Hover) {
+    addHover(hover: NumericHover) {
         this.hovers.push(hover);
     }
     addError(error: Diagnostic) {
@@ -53,8 +53,8 @@ export class DocumentInfo {
     get highlights() {
         return this.#highlights;
     }
-    getHoversAt(position: CustomPosition): Hover[] {
-        return this.hovers.filter((hover) => r(hover.range!).contains(position));
+    getHoversAt(position: number): NumericHover[] {
+        return this.hovers.filter((hover) => hover.range.contains(position));
     }
     removeAllHighlights() {
         this.#highlights = [];

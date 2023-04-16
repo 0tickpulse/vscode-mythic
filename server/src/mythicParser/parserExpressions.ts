@@ -1,13 +1,13 @@
 import { Position, Range } from "vscode-languageserver-textdocument";
 import { MythicToken } from "./scanner.js";
 import { Parser } from "./parser.js";
-import { CustomPosition, CustomRange, r } from "../utils/positionsAndRanges.js";
+import { CustomPosition, CustomRange, NumericRange, r } from "../utils/positionsAndRanges.js";
 import { compare } from "tick-ts-utils";
 
 export abstract class Expr {
-    constructor(readonly parser: Parser, readonly start: Position) {}
+    constructor(readonly parser: Parser, readonly start: number) {}
 
-    range: CustomRange = r(0, 0, 0, 0);
+    range: NumericRange = new NumericRange(0, 0);
 
     abstract printAST(): string;
 
@@ -75,7 +75,7 @@ export abstract class ExprWithMlcs extends Expr {
 export class SkillLineExpr extends Expr {
     constructor(
         readonly parser: Parser,
-        readonly start: Position,
+        readonly start: number,
         readonly mechanic: MechanicExpr,
         readonly targeter: TargeterExpr | undefined,
         readonly trigger: TriggerExpr | undefined,
@@ -87,11 +87,11 @@ export class SkillLineExpr extends Expr {
         const rStart = this.mechanic.range.start;
         let rEnd = this.mechanic.range.end;
         for (const expr of [this.mechanic, this.targeter, this.trigger, this.conditions, this.healthModifier].flat()) {
-            if (expr !== undefined && compare(expr.range.end, rEnd) === 1) {
+            if (expr !== undefined && expr.range.end > rEnd) {
                 rEnd = expr.range.end;
             }
         }
-        this.range = r(rStart, rEnd);
+        this.range = new NumericRange(rStart, rEnd);
     }
 
     override printAST(): string {
@@ -149,7 +149,7 @@ export class SkillLineExpr extends Expr {
 export class MechanicExpr extends ExprWithMlcs {
     constructor(
         readonly parser: Parser,
-        readonly start: Position,
+        readonly start: number,
         readonly identifier: GenericStringExpr,
         readonly leftBrace: MythicToken | undefined,
         readonly mlcs: MlcExpr[] | undefined,
@@ -158,7 +158,7 @@ export class MechanicExpr extends ExprWithMlcs {
         super(parser, start);
         const rStart = this.identifier.range.start;
         const rEnd = this.rightBrace?.range.end ?? this.identifier.range.end;
-        this.range = r(rStart, rEnd);
+        this.range = new NumericRange(rStart, rEnd);
     }
 
     override printAST(): string {
@@ -188,7 +188,7 @@ export class MechanicExpr extends ExprWithMlcs {
 export class TargeterExpr extends ExprWithMlcs {
     constructor(
         readonly parser: Parser,
-        readonly start: Position,
+        readonly start: number,
         readonly at: MythicToken,
         readonly identifier: MythicToken,
         readonly leftBrace: MythicToken | undefined,
@@ -198,7 +198,7 @@ export class TargeterExpr extends ExprWithMlcs {
         super(parser, start);
         const rStart = this.identifier.range.start;
         const rEnd = this.rightBrace?.range.end ?? this.identifier.range.end;
-        this.range = r(rStart, rEnd);
+        this.range = new NumericRange(rStart, rEnd);
     }
 
     override printAST(): string {
@@ -224,14 +224,14 @@ export class TargeterExpr extends ExprWithMlcs {
 export class TriggerExpr extends ExprWithMlcs {
     constructor(
         readonly parser: Parser,
-        readonly start: Position,
+        readonly start: number,
         readonly caret: MythicToken,
         readonly identifier: GenericStringExpr,
         readonly colon: MythicToken | undefined,
         readonly arg: GenericStringExpr | undefined,
     ) {
         super(parser, start);
-        this.range = r(this.caret.range.start, this.arg?.range.end ?? this.identifier.range.end);
+        this.range = new NumericRange(this.caret.range.start, this.arg?.range.end ?? this.identifier.range.end);
     }
 
     override printAST(): string {
@@ -257,7 +257,7 @@ export class TriggerExpr extends ExprWithMlcs {
 export class InlineConditionExpr extends ExprWithMlcs {
     constructor(
         readonly parser: Parser,
-        readonly start: Position,
+        readonly start: number,
         readonly question: MythicToken,
         readonly identifier: MythicToken,
         readonly leftBrace: MythicToken | undefined,
@@ -275,7 +275,7 @@ export class InlineConditionExpr extends ExprWithMlcs {
         super(parser, start);
         const rStart = this.question.range.start;
         const rEnd = this.rightBrace?.range.end ?? this.identifier.range.end;
-        this.range = r(rStart, rEnd);
+        this.range = new NumericRange(rStart, rEnd);
     }
 
     override printAST(): string {
@@ -307,14 +307,14 @@ export class InlineConditionExpr extends ExprWithMlcs {
 export class MlcExpr extends Expr {
     constructor(
         readonly parser: Parser,
-        readonly start: Position,
+        readonly start: number,
         readonly identifier: MythicToken,
         readonly equals: MythicToken,
         readonly value: MlcValueExpr | InlineSkillExpr,
         readonly semicolon: MythicToken | undefined,
     ) {
         super(parser, start);
-        this.range = r(this.identifier.range.start, this.semicolon?.range.end ?? this.value.range.end);
+        this.range = new NumericRange(this.identifier.range.start, this.semicolon?.range.end ?? this.value.range.end);
     }
 
     override printAST(): string {
@@ -342,9 +342,9 @@ export class MlcExpr extends Expr {
 }
 
 export class MlcValueExpr extends Expr {
-    constructor(readonly parser: Parser, readonly start: CustomPosition, readonly identifiers: (MythicToken[] | MlcPlaceholderExpr)[]) {
+    constructor(readonly parser: Parser, readonly start: number, readonly identifiers: (MythicToken[] | MlcPlaceholderExpr)[]) {
         super(parser, start);
-        this.range = r(this.start, this.#getEnd());
+        this.range = new NumericRange(this.start, this.#getEnd());
     }
 
     override printAST(): string {
@@ -363,7 +363,7 @@ export class MlcValueExpr extends Expr {
         return this.identifiers.map((id) => (id instanceof MlcPlaceholderExpr ? id.formatSource() : id.map((j) => j.lexeme).join(""))).join("");
     }
 
-    #getEnd(): CustomPosition {
+    #getEnd(): number {
         if (this.identifiers.length === 0) {
             return this.start;
         }
@@ -385,14 +385,14 @@ export class MlcValueExpr extends Expr {
 export class MlcPlaceholderExpr extends Expr {
     constructor(
         readonly parser: Parser,
-        readonly start: Position,
+        readonly start: number,
         readonly lessThanBracket: MythicToken,
         readonly identifiers: [GenericStringExpr, MythicToken?, MlcExpr[]?, MythicToken?][],
         readonly dots: MythicToken[],
         readonly greaterThanBracket: MythicToken,
     ) {
         super(parser, start);
-        this.range = r(this.lessThanBracket.range.start, this.greaterThanBracket.range.end);
+        this.range = new NumericRange(this.lessThanBracket.range.start, this.greaterThanBracket.range.end);
     }
 
     override printAST(): string {
@@ -417,13 +417,13 @@ export class MlcPlaceholderExpr extends Expr {
 export class InlineSkillExpr extends Expr {
     constructor(
         readonly parser: Parser,
-        readonly start: Position,
+        readonly start: number,
         readonly leftSquareBracket: MythicToken,
         readonly skills: [MythicToken, SkillLineExpr][],
         readonly rightSquareBracket: MythicToken,
     ) {
         super(parser, start);
-        this.range = r(this.leftSquareBracket.range.start, this.rightSquareBracket.range.end);
+        this.range = new NumericRange(this.leftSquareBracket.range.start, this.rightSquareBracket.range.end);
     }
 
     override printAST(): string {
@@ -448,7 +448,7 @@ export class InlineSkillExpr extends Expr {
 export class HealthModifierExpr extends Expr {
     constructor(
         readonly parser: Parser,
-        readonly start: Position,
+        readonly start: number,
         readonly operator: MythicToken,
         /**
          * Either a single value or a range of values.
@@ -458,9 +458,9 @@ export class HealthModifierExpr extends Expr {
     ) {
         super(parser, start);
         if (this.isRange(this.valueOrRange)) {
-            this.range = r(this.operator.range.start, this.valueOrRange[1][0].range.end);
+            this.range = new NumericRange(this.operator.range.start, this.valueOrRange[1][0].range.end);
         } else {
-            this.range = r(this.operator.range.start, this.valueOrRange[0].range.end);
+            this.range = new NumericRange(this.operator.range.start, this.valueOrRange[0].range.end);
         }
     }
 
@@ -499,10 +499,10 @@ export class HealthModifierExpr extends Expr {
 }
 
 export class GenericStringExpr extends Expr {
-    constructor(readonly parser: Parser, readonly start: Position, readonly values: MythicToken[]) {
+    constructor(readonly parser: Parser, readonly start: number, readonly values: MythicToken[]) {
         super(parser, start);
         const last = this.values[this.values.length - 1];
-        this.range = r(this.values[0].range.start, last.range.end);
+        this.range = new NumericRange(this.values[0].range.start, last.range.end);
     }
 
     override printAST(): string {

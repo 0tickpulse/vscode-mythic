@@ -1,6 +1,6 @@
 import { Optional, stripIndentation } from "tick-ts-utils";
 import { Node, isCollection, isMap, isScalar } from "yaml";
-import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
+import { CustomPosition, CustomRange, NumericHover, NumericRange } from "../../utils/positionsAndRanges.js";
 import { getAst } from "../../mythicParser/main.js";
 import { DocumentInfo } from "../parser/parser.js";
 import { generateHover, getAllMechanicsAndAliases, getHolderFromName } from "../../minecraftData/services.js";
@@ -12,7 +12,7 @@ export class SchemaValidationError {
         public message: string,
         public source: string,
         public node: Node,
-        public range = node !== null ? CustomRange.fromYamlRange(source, node.range!) : null,
+        public range = node !== null ? NumericRange.fromYamlRange(node.range!) : null,
     ) {}
 }
 
@@ -263,14 +263,16 @@ export class YamlSchemaObject extends YamlSchema {
                 if (item.key !== null && description) {
                     const range = item.key.range;
                     if (range) {
-                        const customRange = CustomRange.fromYamlRange(source, range);
+                        const customRange = NumericRange.fromYamlRange(range);
                         customRange &&
-                            doc.addHover({
-                                range: customRange,
-                                contents: stripIndentation`Property \`${key}\`: \`${schema.getTypeText()}\`
+                            doc.addHover(
+                                new NumericHover(
+                                    stripIndentation`Property \`${key}\`: \`${schema.getTypeText()}\`
 
                                 ${description}`,
-                            });
+                                    customRange,
+                                ),
+                            );
                     }
                 }
             } else if (required) {
@@ -285,7 +287,7 @@ export class YamlSchemaObject extends YamlSchema {
             }
             const key = (item.key as any).value;
             const range = (item.key as Node).range;
-            const customRange = range ? CustomRange.fromYamlRange(source, range) : undefined;
+            const customRange = range ? NumericRange.fromYamlRange(range) : undefined;
             if (!this.properties[key]) {
                 const closest = getClosestTo(key, Object.keys(this.properties));
                 let message = `Unknown property "${key}"!`;
@@ -392,7 +394,7 @@ export class YamlSchemaMythicSkill extends YamlSchema {
 
         const ast = getAst(skillLine);
         if (ast.hasErrors()) {
-            return ast.errors!.map((error) => new SchemaValidationError(error.message, source, value, error.range.addOffset(source, rangeOffset[0])));
+            return ast.errors!.map((error) => new SchemaValidationError(error.message, source, value, error.range.addOffset(rangeOffset[0])));
         }
 
         this.resolver.ifPresent((r) => {

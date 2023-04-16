@@ -29,15 +29,15 @@ import {
 import { MythicToken } from "./scanner.js";
 import { Hover, SemanticTokenTypes } from "vscode-languageserver";
 import { DocumentInfo } from "../yaml/parser/parser.js";
-import { CustomRange, r } from "../utils/positionsAndRanges.js";
+import { CustomRange, NumericHover, NumericRange, r } from "../utils/positionsAndRanges.js";
 import { Optional } from "tick-ts-utils";
 import { Highlight } from "../colors.js";
 
 export class Resolver extends ExprVisitor<void> {
     #source: string = "";
-    #hovers: Hover[] = [];
+    #hovers: NumericHover[] = [];
     #errors: ResolverError[] = [];
-    #characters: Map<CustomRange, SemanticTokenTypes> = new Map();
+    #characters: Map<NumericRange, SemanticTokenTypes> = new Map();
     #skillVariables: Map<string, MlcValueExpr | SkillLineExpr> = new Map();
     #currentSkill: SkillLineExpr | undefined = undefined;
     #expr: Optional<Expr> = Optional.empty();
@@ -54,20 +54,18 @@ export class Resolver extends ExprVisitor<void> {
         this.#errors = [];
         this.#characters = new Map();
         this.resolve();
-        const hoverRanges = CustomRange.addMultipleOffsets(sourceText, this.#hovers.map((hover) => r(hover.range!)), initialOffset)
         this.#hovers.forEach((hover) => {
-            doc.addHover({ ...hover, range: hoverRanges.shift()! });
+            const newHoverRange = hover.range.addOffset(initialOffset);
+            doc.addHover(new NumericHover(hover.contents, newHoverRange));
         });
-        const errorRanges = CustomRange.addMultipleOffsets(sourceText, this.#errors.map((error) => r(error.range)), initialOffset)
         this.#errors.forEach((error) => {
-            doc.addError({ ...error.toDiagnostic(), range: errorRanges.shift()! });
+            doc.addError(error.toDiagnosticWithOffset(initialOffset));
         });
-        const characterRanges = CustomRange.addMultipleOffsets(sourceText, Array.from(this.#characters.keys()), initialOffset)
         this.#characters.forEach((color, range) => {
-            doc.addHighlight(new Highlight(characterRanges.shift()!, color));
+            doc.addHighlight(new Highlight(range.addOffset(initialOffset).toCustomRange(sourceText), color));
         });
     }
-    #addHighlight(range: CustomRange, color: SemanticTokenTypes) {
+    #addHighlight(range: NumericRange, color: SemanticTokenTypes) {
         this.#characters.set(range, color);
     }
     #addHighlightGenericString(genericString: GenericStringExpr, color: SemanticTokenTypes) {
@@ -119,10 +117,12 @@ export class Resolver extends ExprVisitor<void> {
                 this.#errors.push(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill));
             return;
         }
-        this.#hovers.push({
-            ...generateHover("mechanic", mechanicName, getHolderFromName("mechanic", mechanicName).get()),
-            range: mechanic.getNameRange(),
-        });
+        this.#hovers.push(
+            new NumericHover(
+                generateHover("mechanic", mechanicName, getHolderFromName("mechanic", mechanicName).get()).contents,
+                mechanic.getNameRange(),
+            ),
+        );
 
         /** Whether to keep resolving */
         let keepResolving = true;
@@ -131,11 +131,7 @@ export class Resolver extends ExprVisitor<void> {
             const fieldsAndAliases = getAllFieldNames("mechanic", mechanicName);
             for (const [key, arg] of mechanic.mlcsToTokenMap()) {
                 if (!fieldsAndAliases.includes(key.lexeme ?? "")) {
-                    this.#addError(
-                        `Unknown field '${key.lexeme ?? ""}' for mechanic '${mechanicName}'`,
-                        arg,
-                        arg.range.withStart(key.range.start),
-                    );
+                    this.#addError(`Unknown field '${key.lexeme ?? ""}' for mechanic '${mechanicName}'`, arg, arg.range.withStart(key.range.start));
                 }
                 this.#resolveExpr(arg);
             }

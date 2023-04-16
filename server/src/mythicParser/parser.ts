@@ -78,6 +78,9 @@ export class Parser {
     }
     parseMythicSkill(): MythicSkillParseResult {
         this.#current = 0;
+        if (this.result.source.split("\n").length > 1) {
+            console.log(`Parsing multiline skill: \n${this.result.source}`);
+        }
         if (this.result.errors?.length ?? 0 > 0) {
             return MythicSkillParseResult.fromErrors(this.result.errors ?? []);
         }
@@ -477,7 +480,7 @@ export class Parser {
         // }));
     }
 
-    #currentPosition(): CustomPosition {
+    #currentPosition(): number {
         return this.#peek().range.start;
     }
 }
