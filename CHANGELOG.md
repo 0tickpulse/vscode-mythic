@@ -1,5 +1,9 @@
 # Changelogs
 
+## 1.8.1
+
+- Fixed a bug with offsets in multi-line skills
+
 ## 1.8.0
 
 - More optimizations
