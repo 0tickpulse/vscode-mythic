@@ -1,5 +1,11 @@
 # Changelogs
 
+## 1.8.0
+
+- More optimizations
+- Fixed an infinite loop bug with skill parsing
+- Re-enabled the Resolver while searching for mitigation for the performance issues
+
 ## 1.7.2
 
 - A lot of optimizations
