@@ -1,12 +1,20 @@
 import { MythicData, MythicHovers } from "./models.js";
 import { generateHover } from "./services.js";
 
-export const data = {
+export const data = ({
     mechanic: [
         {
             names: ["message", "msg", "m"],
             description: "Sends a message to the target entity.",
-            fields: [],
+            fields: [
+                {
+                    names: ["message", "msg", "m"],
+                    description: "The message to send.",
+                    type: {
+                        type: "string"
+                    }
+                }
+            ],
         },
         {
             names: ["orbital", "o"],
@@ -19,7 +27,7 @@ export const data = {
     ],
     condition: [],
     targeter: [],
-} as const;
+}) satisfies MythicData;
 
 export const typedData: MythicData = data as any;
 

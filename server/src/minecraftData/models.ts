@@ -25,7 +25,7 @@ export type MythicField = {
     required?: boolean;
     type: MythicFieldType;
     pluginRequirements?: PluginRequirement[];
-    default: string;
+    default?: string;
     placeholder?: string;
 };
 

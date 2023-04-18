@@ -16,6 +16,7 @@
 - [📖 Table of Contents](#-table-of-contents)
 - [🚀 Features](#-features)
   - [🎉 Current](#-current)
+    - [Basic Syntax Highlighting](#basic-syntax-highlighting)
   - [🚧 Planned](#-planned)
 - [📦 Installation](#-installation)
 - [📝 License](#-license)
@@ -25,7 +26,9 @@
 
 ### 🎉 Current
 
-- Basic syntax highlighting
+#### Basic Syntax Highlighting
+
+![Syntax Highlighting](./assets/showcase_syntax_highlight.png)
 
 ### 🚧 Planned
 

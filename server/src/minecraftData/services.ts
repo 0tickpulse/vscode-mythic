@@ -1,7 +1,7 @@
 import { Optional } from "tick-ts-utils";
 import { InvalidFieldValueError } from "../errors.js";
 import { MlcPlaceholderExpr, MlcValueExpr } from "../mythicParser/parserExpressions.js";
-import { getClosestTo } from "../utils/utils.js";
+import { getClosestTo, wrapInInlineCode } from "../utils/utils.js";
 import { compiledHovers, data, typedData } from "./data.js";
 import {
     MythicData,
@@ -37,7 +37,7 @@ export type GetMechanic<T extends MechanicsAndAliases[number]> = FilterArrayKeyI
 
 type A = GetMechanic<"m">;
 //   ^?
-type b = typeof data.mechanic
+type b = typeof data.mechanic;
 //   ^?
 
 export function getAllMechanicsAndAliases(): string[] {
@@ -69,8 +69,8 @@ export function generateHover(type: keyof MythicData, name: string, holder: Myth
     }
     if (holder.fields) {
         lines.push("## Fields");
-        for (const [fieldName, field] of Object.entries(holder.fields)) {
-            lines.push(generateHoverForField(name, type, fieldName, field));
+        for (const field of holder.fields) {
+            lines.push(generateHoverForField(name, type, field.names[0], field));
         }
     }
     if (holder.pluginRequirements) {
@@ -89,11 +89,11 @@ export function generateHover(type: keyof MythicData, name: string, holder: Myth
         contents: {
             kind: "markdown",
             value: result,
-        }
-    }
+        },
+    };
 }
 
-function generateHoverForField(name: string, type: keyof MythicData, fieldName: string, field: MythicField, standalone = false) {
+export function generateHoverForField(name: string, type: keyof MythicData, fieldName: string, field: MythicField, standalone = false) {
     const lines: string[] = [];
 
     if (standalone) {
@@ -103,9 +103,8 @@ function generateHoverForField(name: string, type: keyof MythicData, fieldName: 
         }
     } else {
         lines.push(
-            `* \`${fieldName}` +
+            `* ${field.names.map(wrapInInlineCode).join(" | ")}` +
                 (field.placeholder !== undefined ? `=${field.placeholder}` : "") +
-                `\`` +
                 (field.description !== undefined ? ` - ${field.description}` : ""),
         );
     }
@@ -129,8 +128,10 @@ export function getAllNames(type: keyof MythicData) {
     return compiledHovers[type].flatMap((h) => h.names);
 }
 
-export function getAllFieldNames(type: keyof MythicData, name: string) {
-    return Object.keys(typedData[type].find((d) => d.names.includes(name))?.fields ?? {});
+export function getAllFields(type: keyof MythicData, name: string) {
+    return getHolderFromName(type, name)
+        .map((h) => h.fields ?? [])
+        .otherwise([] as MythicField[]);
 }
 
 export function getClosestMatch(type: keyof MythicData, name: string, distanceLimit = 3) {
@@ -258,3 +259,4 @@ export function validate(fieldType: MythicFieldType, expr: MlcValueExpr): Invali
             return []; // TODO
     }
 }
+

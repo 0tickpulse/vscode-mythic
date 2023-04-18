@@ -12,3 +12,7 @@ export function getClosestTo(value: string, values: string[], maxDistance = 3) {
     }
     return closest;
 }
+
+export function wrapInInlineCode(value: string) {
+    return "`" + value + "`";
+}

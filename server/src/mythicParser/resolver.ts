@@ -2,12 +2,13 @@ import { VARIABLE_SCOPES, data, typedData } from "../minecraftData/data.js";
 import { MythicField, MythicHolder } from "../minecraftData/models.js";
 import {
     getAllMechanicsAndAliases,
-    getAllFieldNames,
+    getAllFields,
     getHolderFromName,
     getHolderFieldFromName,
     validate,
     MechanicsAndAliases,
     generateHover,
+    generateHoverForField,
 } from "../minecraftData/services.js";
 import { ResolverError, UnknownMechanicResolverError } from "../errors.js";
 import {
@@ -30,7 +31,7 @@ import { MythicToken } from "./scanner.js";
 import { Hover, SemanticTokenTypes } from "vscode-languageserver";
 import { DocumentInfo } from "../yaml/parser/parser.js";
 import { CustomRange, r } from "../utils/positionsAndRanges.js";
-import { Optional } from "tick-ts-utils";
+import { Optional, stripIndentation } from "tick-ts-utils";
 import { Highlight } from "../colors.js";
 
 export class Resolver extends ExprVisitor<void> {
@@ -54,15 +55,23 @@ export class Resolver extends ExprVisitor<void> {
         this.#errors = [];
         this.#characters = new Map();
         this.resolve();
-        const hoverRanges = CustomRange.addMultipleOffsets(sourceText, this.#hovers.map((hover) => r(hover.range!)), initialOffset)
+        const hoverRanges = CustomRange.addMultipleOffsets(
+            sourceText,
+            this.#hovers.map((hover) => r(hover.range!)),
+            initialOffset,
+        );
         this.#hovers.forEach((hover) => {
             doc.addHover({ ...hover, range: hoverRanges.shift()! });
         });
-        const errorRanges = CustomRange.addMultipleOffsets(sourceText, this.#errors.map((error) => r(error.range)), initialOffset)
+        const errorRanges = CustomRange.addMultipleOffsets(
+            sourceText,
+            this.#errors.map((error) => r(error.range)),
+            initialOffset,
+        );
         this.#errors.forEach((error) => {
             doc.addError({ ...error.toDiagnostic(), range: errorRanges.shift()! });
         });
-        const characterRanges = CustomRange.addMultipleOffsets(sourceText, Array.from(this.#characters.keys()), initialOffset)
+        const characterRanges = CustomRange.addMultipleOffsets(sourceText, Array.from(this.#characters.keys()), initialOffset);
         this.#characters.forEach((color, range) => {
             doc.addHighlight(new Highlight(characterRanges.shift()!, color));
         });
@@ -128,16 +137,21 @@ export class Resolver extends ExprVisitor<void> {
         let keepResolving = true;
         const mechanicData: MythicHolder = getHolderFromName("mechanic", mechanicName).get();
         if (mechanicData.fields !== undefined) {
-            const fieldsAndAliases = getAllFieldNames("mechanic", mechanicName);
+            const fields = getAllFields("mechanic", mechanicName);
+            const fieldsAndAliases = fields.flatMap((field) => field.names);
             for (const [key, arg] of mechanic.mlcsToTokenMap()) {
                 if (!fieldsAndAliases.includes(key.lexeme ?? "")) {
                     this.#addError(
-                        `Unknown field '${key.lexeme ?? ""}' for mechanic '${mechanicName}'`,
+                        stripIndentation`Unknown field '${key.lexeme ?? ""}' for mechanic '${mechanicName}'
+                        Possible fields: ${fieldsAndAliases.map((a) => `\`${a}\``).join(", ")}`,
                         arg,
-                        arg.range.withStart(key.range.start),
+                        key.range,
                     );
                 }
                 this.#resolveExpr(arg);
+                const matchedField = fields.find((field) => field.names.includes(key.lexeme ?? ""))!;
+                // field is valid, add hover
+                this.#hovers.push({ contents: generateHoverForField(mechanicName, "mechanic", key.lexeme!, matchedField, true), range: key.range });
             }
             for (const [name, { required }] of Object.entries(mechanicData.fields)) {
                 if (required && !fieldsAndAliases.some((value) => mechanic.mlcsToMap().has(value))) {
