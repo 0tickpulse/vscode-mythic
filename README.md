@@ -30,6 +30,8 @@
 
 ![Syntax Highlighting](./assets/showcase_syntax_highlight.png)
 
+(Using the [One Dark Pro](https://marketplace.visualstudio.com/items?itemName=zhuangtongfa.Material-theme) theme and the [CodeSnap](https://marketplace.visualstudio.com/items?itemName=adpyke.codesnap) extension)
+
 ### 🚧 Planned
 
 - Diagnostics
