@@ -1,4 +1,3 @@
-import { Pool, Worker, expose, isWorkerRuntime, spawn } from "threads";
 import { Optional, Result } from "tick-ts-utils";
 import { Diagnostic, Hover } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -6,7 +5,8 @@ import { Document } from "yaml";
 import { Highlight } from "../../colors.js";
 import { CustomPosition, CustomRange, r } from "../../utils/positionsAndRanges.js";
 import { YamlSchema } from "../schemaSystem/schemaTypes.js";
-import { ParseSync, parseSyncInner } from "./parseSync.js";
+import { ParseSync, parseSync, parseSyncInner } from "./parseSync.js";
+import greenlet from "greenlet";
 
 export class DocumentInfo {
     /** cached source */
@@ -62,11 +62,6 @@ export class DocumentInfo {
 }
 
 /**
- * It currently doesn't work.
- */
-// export const WORKER_POOL = Pool(() => spawn<ParseSync>(new Worker("./server.js")), { size: 4 });
-
-/**
  * Please don't use this function. It doesn't work.
  *
  * Like {@link parseSyncInner} but runs in a separate worker thread instead of the main thread.
@@ -75,14 +70,4 @@ export class DocumentInfo {
  * @param document The document to parse.
  * @returns The parsed document.
  */
-// export async function parse(document: TextDocument): Promise<Result<DocumentInfo, unknown>> {
-//     try {
-//         return Result.ok(
-//             await WORKER_POOL.queue((worker) =>
-//                 worker.parseSync({ uri: document.uri, languageId: document.languageId, version: document.version, source: document.getText() }),
-//             ),
-//         );
-//     } catch (e) {
-//         return Result.error(e);
-//     }
-// }
+export const parse: (document: TextDocument) => Promise<DocumentInfo> = greenlet(async (doc) => parseSync(doc));

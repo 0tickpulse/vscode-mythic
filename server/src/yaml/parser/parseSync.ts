@@ -4,7 +4,6 @@ import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import picomatch from "picomatch";
 import { PATH_MAP } from "../schemaSystem/data.js";
 import { DocumentInfo } from "./parser.js";
-import { expose } from "threads";
 
 export function parseSync(doc: TextDocument) {
     return parseSyncInner({
