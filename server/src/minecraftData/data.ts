@@ -15,6 +15,12 @@ export const data = ({
                     }
                 }
             ],
+            examples: [
+                {
+                    text: "message{m=You have <target.health> health left.} @Target",
+                    explanation: "Sends a message to the target entity with their health."
+                }
+            ]
         },
         {
             names: ["orbital", "o"],
