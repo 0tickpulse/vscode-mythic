@@ -1,5 +1,9 @@
 # Changelogs
 
+## 1.8.2
+
+- Add an example to `message`.
+
 ## 1.8.1
 
 - Fixed a bug with offsets in multi-line skills
