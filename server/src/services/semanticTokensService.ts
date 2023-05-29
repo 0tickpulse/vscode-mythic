@@ -24,7 +24,8 @@ export default (params: SemanticTokensParams): SemanticTokens => {
     let tokenIndex = 0;
 
     // console.time(`[semanticTokensService] ${params.textDocument.uri} (converting to int array)`);
-    highlights.forEach((highlight) => {
+    for (let i = 0; i < highlights.length; i++) {
+        const highlight = highlights[i];
         // console.time(`[semanticTokensService] ${params.textDocument.uri} (converting to int array) calculating line`);
         const line = highlight.range.start.line - lastLine;
         // console.timeEnd(`[semanticTokensService] ${params.textDocument.uri} (converting to int array) calculating line`);
@@ -47,7 +48,7 @@ export default (params: SemanticTokensParams): SemanticTokens => {
         lastChar = highlight.range.start.character;
         // console.timeEnd(`[semanticTokensService] ${params.textDocument.uri} (converting to int array) pushing to array`);
         // add console times to see how much time is spent in each step
-    });
+    }
     // console.timeEnd(`[semanticTokensService] ${params.textDocument.uri} (converting to int array)`);
 
     return { data: tokens };
