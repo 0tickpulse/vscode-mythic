@@ -5,6 +5,7 @@ import initializeService from "./services/initializeService.js";
 import { hover } from "./services/hoverService.js";
 import semanticTokensService from "./services/semanticTokensService.js";
 import { stripIndentation } from "tick-ts-utils";
+import { scheduleParse } from "./yaml/parser/parseSync.js";
 
 process.argv.push("--node-ipc")
 

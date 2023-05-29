@@ -5,6 +5,44 @@ import picomatch from "picomatch";
 import { PATH_MAP } from "../schemaSystem/data.js";
 import { DocumentInfo } from "./parser.js";
 import { expose } from "threads";
+import { documents } from "../../documentManager.js";
+import { server } from "../../index.js";
+
+/**
+ * This is a set of URIs that are currently being parsed.
+ * When a file gets edited, it gets added to this set.
+ * Every set interval, the parser will check this set and parse any files that are in it.
+ * This is to prevent the parser from parsing the same file more times than necessary.
+ */
+const TO_PARSE = new Set<TextDocument>();
+
+export function scheduleDocument(doc: TextDocument) {
+    TO_PARSE.add(doc);
+}
+
+const INTERVAL = 600;
+
+/**
+ * Run when the lsp server starts.
+ * This will schedule the parser to run every set interval to parse any files that are in the TO_PARSE set.
+ * Warning: This will run forever.
+ */
+export function scheduleParse() {
+    setInterval(() => {
+        if (TO_PARSE.size === 0) {
+            return;
+        }
+        console.log(`[parseSync] Parsing ${TO_PARSE.size} documents`);
+        const toParse = [...TO_PARSE];
+        TO_PARSE.clear();
+        toParse.forEach((doc) => {
+            const documentInfo = parseSync(doc);
+            documents.set(documentInfo);
+            server.connection.sendDiagnostics({ uri: doc.uri, diagnostics: documentInfo.errors });
+            server.connection.languages.semanticTokens.refresh();
+        });
+    }, INTERVAL);
+}
 
 export function parseSync(doc: TextDocument) {
     return parseSyncInner({
