@@ -1,17 +1,23 @@
 import { SemanticTokens, SemanticTokensParams } from "vscode-languageserver";
-import { documents } from "../documentManager.js";
+import { data } from "../documentManager.js";
 import { Highlight } from "../colors.js";
 import { CustomRange, CustomPosition } from "../utils/positionsAndRanges.js";
+import { PARSE_QUEUE } from "../yaml/parser/parseSync.js";
 
 export default (params: SemanticTokensParams): SemanticTokens => {
     console.log(`[semanticTokensService] ${params.textDocument.uri}`);
     const { uri } = params.textDocument;
-    const doc = documents.getDocument(uri);
+    const doc = data.documents.getDocument(uri);
     if (!doc) {
         console.log(`[semanticTokensService] ${params.textDocument.uri} (no document)`);
         return { data: [] };
     }
-    const { highlights } = doc;
+    const { highlights, base } = doc;
+
+    if (PARSE_QUEUE.size > 0) {
+        // hasn't been parsed yet
+        return { data: [] };
+    }
 
     console.log(`Processing ${highlights.length} highlights`);
     // console.time(`[semanticTokensService] ${params.textDocument.uri} (sort)`);

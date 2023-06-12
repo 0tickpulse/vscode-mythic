@@ -1,5 +1,5 @@
 import { ProposedFeatures, SemanticTokenTypes, createConnection } from "vscode-languageserver/node.js";
-import { documents } from "./documentManager.js";
+import { data } from "./documentManager.js";
 import didChangeContentService from "./services/didChangeContentService.js";
 import initializeService from "./services/initializeService.js";
 import { hover } from "./services/hoverService.js";
@@ -7,11 +7,11 @@ import semanticTokensService from "./services/semanticTokensService.js";
 import { stripIndentation } from "tick-ts-utils";
 import { scheduleParse } from "./yaml/parser/parseSync.js";
 
-process.argv.push("--node-ipc")
+process.argv.push("--node-ipc");
 
 export const server = {
     connection: createConnection(ProposedFeatures.all),
-    documents,
+    data: data,
 };
 
 function wrapInTryCatch<T>(fn: (...args: any[]) => T, fallback: T) {
@@ -26,7 +26,9 @@ function wrapInTryCatch<T>(fn: (...args: any[]) => T, fallback: T) {
 function main() {
     const {
         connection,
-        documents: { manager },
+        data: {
+            documents: { manager },
+        },
     } = server;
     connection.listen();
     connection.onInitialize(initializeService);

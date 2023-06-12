@@ -5,43 +5,33 @@ import picomatch from "picomatch";
 import { PATH_MAP } from "../schemaSystem/data.js";
 import { DocumentInfo } from "./parser.js";
 import { expose } from "threads";
-import { documents } from "../../documentManager.js";
+import { data } from "../../documentManager.js";
 import { server } from "../../index.js";
+import { Optional } from "tick-ts-utils";
 
-/**
- * This is a set of URIs that are currently being parsed.
- * When a file gets edited, it gets added to this set.
- * Every set interval, the parser will check this set and parse any files that are in it.
- * This is to prevent the parser from parsing the same file more times than necessary.
- */
-const TO_PARSE = new Set<TextDocument>();
-
-export function scheduleDocument(doc: TextDocument) {
-    TO_PARSE.add(doc);
+export const PARSE_QUEUE: Set<TextDocument> = new Set();
+export let scheduledParse: Optional<NodeJS.Timeout> = Optional.empty();
+export function queueDocumentForParse(doc: TextDocument) {
+    PARSE_QUEUE.add(doc);
+    scheduleParse();
 }
-
-const INTERVAL = 600;
-
-/**
- * Run when the lsp server starts.
- * This will schedule the parser to run every set interval to parse any files that are in the TO_PARSE set.
- * Warning: This will run forever.
- */
 export function scheduleParse() {
-    setInterval(() => {
-        if (TO_PARSE.size === 0) {
-            return;
-        }
-        console.log(`[parseSync] Parsing ${TO_PARSE.size} documents`);
-        const toParse = [...TO_PARSE];
-        TO_PARSE.clear();
-        toParse.forEach((doc) => {
-            const documentInfo = parseSync(doc);
-            documents.set(documentInfo);
-            server.connection.sendDiagnostics({ uri: doc.uri, diagnostics: documentInfo.errors });
+    scheduledParse.ifPresent(clearTimeout);
+    scheduledParse = Optional.of(
+        setTimeout(() => {
+            if (PARSE_QUEUE.size === 0) {
+                return;
+            }
+            console.log(`[parseSync] Parsing ${PARSE_QUEUE.size} documents`);
+            PARSE_QUEUE.forEach((doc) => {
+                const documentInfo = parseSync(doc);
+                data.documents.set(documentInfo);
+                server.connection.sendDiagnostics({ uri: doc.uri, diagnostics: documentInfo.errors });
+            });
+            PARSE_QUEUE.clear();
             server.connection.languages.semanticTokens.refresh();
-        });
-    }, INTERVAL);
+        }, 1000),
+    );
 }
 
 export function parseSync(doc: TextDocument) {
@@ -86,16 +76,16 @@ export function parseSyncInner({ uri, languageId, version, source }: Pick<TextDo
         const errors = schema.get().validateAndModify(documentInfo, yamlAst.contents!);
         console.timeEnd(`parse (schema validation) (${schema.get().getTypeText()})})`);
         console.time("parse (adding errors)");
-        errors.forEach(
-            (error) =>
-                error.range !== null &&
+        errors.forEach((error) => {
+            console.log(`Error: ${JSON.stringify(error)}`);
+            error.range !== null &&
                 documentInfo.addError({
                     message: error.message,
                     range: error.range,
                     severity: 1,
                     source: "Mythic Language Server",
-                }),
-        );
+                });
+        });
         console.timeEnd("parse (adding errors)");
     }
 

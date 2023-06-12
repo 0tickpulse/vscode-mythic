@@ -1,19 +1,22 @@
 import { Optional, stripIndentation } from "tick-ts-utils";
 import { Node, isCollection, isMap, isScalar } from "yaml";
-import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import { getAst } from "../../mythicParser/main.js";
-import { DocumentInfo } from "../parser/parser.js";
-import { generateHover, getAllMechanicsAndAliases, getHolderFromName } from "../../minecraftData/services.js";
-import { getClosestTo } from "../../utils/utils.js";
 import { Resolver } from "../../mythicParser/resolver.js";
+import { CustomRange } from "../../utils/positionsAndRanges.js";
+import { getClosestTo } from "../../utils/utils.js";
+import { DocumentInfo } from "../parser/parser.js";
 
 export class SchemaValidationError {
+    message: string;
     constructor(
-        public message: string,
+        public expectedType: YamlSchema,
+        message: string,
         public source: string,
         public node: Node,
         public range = node !== null ? CustomRange.fromYamlRange(source, node.range!) : null,
-    ) {}
+    ) {
+        this.message = message; // TODO - Format the message better
+    }
 }
 
 /**
@@ -66,7 +69,7 @@ export class YamlSchemaString extends YamlSchema {
     override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isScalar(value)) {
-            return [new SchemaValidationError("Expected a string!", source, value)];
+            return [new SchemaValidationError(this, "Expected a string!", source, value)];
         }
         return [];
     }
@@ -108,11 +111,22 @@ export class YamlSchemaNumber extends YamlSchema {
     }
     override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
+        const range = value.range && CustomRange.fromYamlRange(source, value.range);
         if (!isScalar(value)) {
-            return [new SchemaValidationError("Expected a number!", source, value)];
+            return [new SchemaValidationError(this, "Expected a number!", source, value, range)];
         }
-        if (isNaN(Number(value.value))) {
-            return [new SchemaValidationError("Expected a number!", source, value)];
+        const num = Number(value.value);
+        if (isNaN(num)) {
+            return [new SchemaValidationError(this, "Expected a number!", source, value, range)];
+        }
+        if (this.lowerBound !== undefined && num < this.lowerBound) {
+            return [new SchemaValidationError(this, `Expected a number greater than ${this.lowerBound}!`, source, value, range)];
+        }
+        if (this.upperBound !== undefined && num > this.upperBound) {
+            return [new SchemaValidationError(this, `Expected a number less than ${this.upperBound}!`, source, value, range)];
+        }
+        if (this.isInteger && !Number.isInteger(num)) {
+            return [new SchemaValidationError(this, "Expected an integer!", source, value, range)];
         }
         return [];
     }
@@ -131,10 +145,10 @@ export class YamlSchemaBoolean extends YamlSchema {
     override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isScalar(value)) {
-            return [new SchemaValidationError("Expected a boolean!", source, value)];
+            return [new SchemaValidationError(this, "Expected a boolean!", source, value)];
         }
         if (value.value !== "true" && value.value !== "false") {
-            return [new SchemaValidationError("Expected a boolean!", source, value)];
+            return [new SchemaValidationError(this, "Expected a boolean!", source, value)];
         }
         return [];
     }
@@ -160,7 +174,7 @@ export class YamlSchemaArray extends YamlSchema {
 
         const source = doc.base.getText();
         if (!isCollection(value)) {
-            return [new SchemaValidationError("Expected an array!", source, value)];
+            return [new SchemaValidationError(this, "Expected an array!", source, value)];
         }
 
         const errors: SchemaValidationError[] = [];
@@ -186,12 +200,12 @@ export class YamlSchemaTuple extends YamlSchema {
     override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isCollection(value)) {
-            return [new SchemaValidationError("Expected a tuple!", source, value)];
+            return [new SchemaValidationError(this, "Expected a tuple!", source, value)];
         }
         // check length
         if (value.items.length !== this.itemSchema.length) {
             return [
-                new SchemaValidationError(`Expected a tuple with ${this.itemSchema.length} items, but got ${value.items.length}!`, source, value),
+                new SchemaValidationError(this, `Expected a tuple with ${this.itemSchema.length} items, but got ${value.items.length}!`, source, value),
             ];
         }
         // check items
@@ -240,7 +254,7 @@ export class YamlSchemaObject extends YamlSchema {
     override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isMap(value)) {
-            return [new SchemaValidationError("Expected an object!", source, value)];
+            return [new SchemaValidationError(this, "Expected an object!", source, value)];
         }
 
         const { items } = value;
@@ -274,7 +288,7 @@ export class YamlSchemaObject extends YamlSchema {
                     }
                 }
             } else if (required) {
-                return [new SchemaValidationError(`Missing required property "${key}"!`, source, value)];
+                return [new SchemaValidationError(this, `Missing required property "${key}"!`, source, value)];
             }
         }
 
@@ -292,7 +306,7 @@ export class YamlSchemaObject extends YamlSchema {
                 if (closest) {
                     message += ` Did you mean "${closest}"?`;
                 }
-                return [new SchemaValidationError(message, source, value, customRange)];
+                return [new SchemaValidationError(this, message, source, value, customRange)];
             }
         }
 
@@ -318,7 +332,7 @@ export class YamlSchemaMap extends YamlSchema {
     override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isMap(value)) {
-            return [new SchemaValidationError("Expected a map!", source, value)];
+            return [new SchemaValidationError(this, "Expected a map!", source, value)];
         }
 
         const errors: SchemaValidationError[] = [];
@@ -355,7 +369,7 @@ export class YamlSchemaUnion extends YamlSchema {
                 return [];
             }
         }
-        return [new SchemaValidationError(`Expected ${this.getDescription()}`, source, value)];
+        return [new SchemaValidationError(this, `Expected ${this.getDescription()}`, source, value)];
     }
     getTypeText() {
         return `${this.items.map((item) => item.getTypeText()).join(" | ")}`;
@@ -372,7 +386,7 @@ export class YamlSchemaMythicSkill extends YamlSchema {
     override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isScalar(value)) {
-            return [new SchemaValidationError("Expected a skill!", source, value)];
+            return [new SchemaValidationError(this, "Expected a skill!", source, value)];
         }
 
         let rangeOffset = value.range!;
@@ -394,7 +408,7 @@ export class YamlSchemaMythicSkill extends YamlSchema {
 
         const ast = getAst(skillLine);
         if (ast.hasErrors()) {
-            return ast.errors!.map((error) => new SchemaValidationError(error.message, source, value, error.range.addOffset(source, rangeOffset[0])));
+            return ast.errors!.map((error) => new SchemaValidationError(this, error.message, source, value, error.range.addOffset(source, rangeOffset[0])));
         }
 
         this.resolver.ifPresent((r) => {
@@ -405,7 +419,7 @@ export class YamlSchemaMythicSkill extends YamlSchema {
         return [];
     }
     getTypeText() {
-        return "skill";
+        return "mythicSkill";
     }
 }
 // TODO

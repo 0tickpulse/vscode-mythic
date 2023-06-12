@@ -3,7 +3,7 @@ import { Node } from "yaml";
 /**
  * Represents a cached Mythic Skill.
  */
-export class MythicSkill {
+export class CachedMythicSkill {
     constructor(
         /**
          * The path to the file containing the skill.
@@ -19,8 +19,3 @@ export class MythicSkill {
         public readonly name: string,
     ) {}
 }
-
-/**
- * A list of all cached Mythic Skills.
- */
-export const CACHED_SKILLS = [];

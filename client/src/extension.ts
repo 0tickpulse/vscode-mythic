@@ -1,8 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 
-import { join, resolve } from "path";
-import { ExtensionContext, Range, Position, TextEditor, window, workspace } from "vscode";
-import { LanguageClientOptions, LanguageClient, TransportKind, ServerOptions, ForkOptions } from "vscode-languageclient/node.js";
+import { join } from "path";
+import { ExtensionContext } from "vscode";
+import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node.js";
 
 let client: LanguageClient;
 
