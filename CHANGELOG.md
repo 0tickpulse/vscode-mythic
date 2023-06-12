@@ -1,5 +1,14 @@
 # Changelogs
 
+## 1.8.4
+
+- Finalized the new performance optimizations
+- Internal code cleanup
+
+## 1.8.3
+
+- Experimental new performance optimizations
+
 ## 1.8.2
 
 - Add an example to `message`.
