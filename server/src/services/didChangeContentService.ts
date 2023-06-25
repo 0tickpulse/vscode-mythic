@@ -4,13 +4,8 @@ import { queueDocumentForParse } from "../yaml/parser/parseSync.js";
 
 // let ratelimitEnd: number | null = null;
 
-export default async (params: TextDocumentChangeEvent<TextDocument>) => {
-    console.log(`[didChangeContentService] ${params.document.uri}`);
-
-    // if (ratelimitEnd !== null && Date.now() < ratelimitEnd) {
-    //     return;
-    // }
-
+export default async ({ document }: TextDocumentChangeEvent<TextDocument>) => {
+    console.log(`[didChangeContentService] ${document.uri}`);
     // ratelimitEnd = Date.now() + 1000;
-    queueDocumentForParse(params.document);
+    queueDocumentForParse(document);
 };

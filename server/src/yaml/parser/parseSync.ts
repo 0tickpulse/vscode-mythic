@@ -1,19 +1,33 @@
+import { Optional } from "tick-ts-utils";
+import { Diagnostic } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { parseDocument } from "yaml";
+import { globalData } from "../../documentManager.js";
+import { server } from "../../index.js";
 import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
-import picomatch from "picomatch";
 import { PATH_MAP } from "../schemaSystem/data.js";
 import { DocumentInfo } from "./parser.js";
-import { expose } from "threads";
-import { data } from "../../documentManager.js";
-import { server } from "../../index.js";
-import { Optional } from "tick-ts-utils";
 
 export const PARSE_QUEUE: Set<TextDocument> = new Set();
 export let scheduledParse: Optional<NodeJS.Timeout> = Optional.empty();
 export function queueDocumentForParse(doc: TextDocument) {
     PARSE_QUEUE.add(doc);
+    console.log(`[parseSync] Queued ${doc.uri} for parsing`);
     scheduleParse();
+}
+/**
+ * Procedures that run before beginning to parse all documents.
+ */
+const flushProcedures: (() => void)[] = [];
+/**
+ * Document-specific procedures that run before parsing a document.
+ */
+const flushDocProcedures: ((doc: TextDocument) => void)[] = [];
+export function onFlush(procedure: () => void) {
+    flushProcedures.push(procedure);
+}
+export function onFlushDoc(procedure: (doc: TextDocument) => void) {
+    flushDocProcedures.push(procedure);
 }
 export function scheduleParse() {
     scheduledParse.ifPresent(clearTimeout);
@@ -23,10 +37,20 @@ export function scheduleParse() {
                 return;
             }
             console.log(`[parseSync] Parsing ${PARSE_QUEUE.size} documents`);
+            const diagnostics = new Map<string, Diagnostic[]>();
+            flushProcedures.forEach((procedure) => procedure());
             PARSE_QUEUE.forEach((doc) => {
                 const documentInfo = parseSync(doc);
-                data.documents.set(documentInfo);
-                server.connection.sendDiagnostics({ uri: doc.uri, diagnostics: documentInfo.errors });
+                globalData.documents.set(documentInfo);
+                diagnostics.set(doc.uri, documentInfo.errors);
+            });
+            PARSE_QUEUE.forEach((doc) => {
+                const documentInfo = postParse(globalData.documents.getDocument(doc.uri)!); // non-null assertion because we just set it in the previous closure
+                globalData.documents.set(documentInfo);
+                diagnostics.get(doc.uri)!.push(...documentInfo.errors); // non-null assertion because we just set it in the previous closure
+            });
+            diagnostics.forEach((diagnostics, uri) => {
+                server.connection.sendDiagnostics({ uri, diagnostics });
             });
             PARSE_QUEUE.clear();
             server.connection.languages.semanticTokens.refresh();
@@ -34,16 +58,10 @@ export function scheduleParse() {
     );
 }
 
-export function parseSync(doc: TextDocument) {
-    return parseSyncInner({
-        uri: doc.uri,
-        languageId: doc.languageId,
-        version: doc.version,
-        source: doc.getText(),
-    });
-}
-
-export function parseSyncInner({ uri, languageId, version, source }: Pick<TextDocument, "uri" | "languageId" | "version"> & { source: string }) {
+function parseSync(doc: TextDocument) {
+    const { uri, languageId, version } = doc;
+    console.time(`[parseSync] preParse ${uri}`);
+    const source = doc.getText();
     const document = TextDocument.create(uri, languageId, version, source);
     const documentInfo = new DocumentInfo(document, parseDocument(source));
     const { yamlAst } = documentInfo;
@@ -52,14 +70,11 @@ export function parseSyncInner({ uri, languageId, version, source }: Pick<TextDo
         return documentInfo;
     }
 
-    console.time("parse (finding schema)");
     PATH_MAP.forEach(({ schema, picoMatch }, pathMatcher) => {
         if (picoMatch(uri)) {
-            console.log(`Schema found for ${uri}: ${schema.getTypeText()} (picoMatch)`);
             documentInfo.setSchema(schema);
         }
     });
-    console.timeEnd("parse (finding schema)");
 
     const { schema } = documentInfo;
     documentInfo.yamlAst.errors.forEach((error) =>
@@ -71,13 +86,10 @@ export function parseSyncInner({ uri, languageId, version, source }: Pick<TextDo
         }),
     );
     if (!schema.isEmpty()) {
-        console.time(`parse (schema validation) (${schema.get().getTypeText()})})`);
         // console.log(`Schema found for ${uri}: ${schema.get().getDescription()}`);
-        const errors = schema.get().validateAndModify(documentInfo, yamlAst.contents!);
-        console.timeEnd(`parse (schema validation) (${schema.get().getTypeText()})})`);
-        console.time("parse (adding errors)");
+        // const errors = [...schema.get().preValidate(documentInfo, yamlAst.contents!), ...schema.get().validateAndModify(documentInfo, yamlAst.contents!)];
+        const errors = schema.get().preValidate(documentInfo, yamlAst.contents!);
         errors.forEach((error) => {
-            console.log(`Error: ${JSON.stringify(error)}`);
             error.range !== null &&
                 documentInfo.addError({
                     message: error.message,
@@ -86,10 +98,26 @@ export function parseSyncInner({ uri, languageId, version, source }: Pick<TextDo
                     source: "Mythic Language Server",
                 });
         });
-        console.timeEnd("parse (adding errors)");
     }
+    console.timeEnd(`[parseSync] preParse ${uri}`);
 
     return documentInfo;
 }
 
-export type ParseSync = { parseSync: typeof parseSyncInner };
+function postParse(doc: DocumentInfo) {
+    console.time(`[parseSync] postParse ${doc.base.uri}`);
+    doc.schema.ifPresent((schema) => {
+        const errors = schema.validateAndModify(doc, doc.yamlAst.contents!);
+        errors.forEach((error) => {
+            error.range !== null &&
+                doc.addError({
+                    message: error.message,
+                    range: error.range,
+                    severity: 1,
+                    source: "Mythic Language Server",
+                });
+        });
+    });
+    console.timeEnd(`[parseSync] postParse ${doc.base.uri}`);
+    return doc;
+}

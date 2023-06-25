@@ -53,6 +53,12 @@ export class CustomPosition implements Comparable<CustomPosition> {
     toString() {
         return `Position(${this.line}, ${this.character})`;
     }
+    /**
+     * A special format for positions, used for user-facing messages.
+     */
+    fmt() {
+        return `${this.line}:${this.character}`;
+    }
 }
 
 /**
@@ -106,6 +112,12 @@ export class CustomRange {
     }
     toString() {
         return `Range(${this.start}, ${this.end})`;
+    }
+    /**
+     * A special format for ranges, used for user-facing messages.
+     */
+    fmt() {
+        return `${this.start.fmt()}-${this.end.fmt()}`;
     }
     contains(position: CustomPosition) {
         return this.start.compareTo(position) <= 0 && this.end.compareTo(position) >= 0;

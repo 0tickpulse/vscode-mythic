@@ -1,8 +1,9 @@
-import { Optional } from "tick-ts-utils";
+import { Optional, stripIndentation } from "tick-ts-utils";
 import { InvalidFieldValueError } from "../errors.js";
 import { MlcPlaceholderExpr, MlcValueExpr } from "../mythicParser/parserExpressions.js";
 import { getClosestTo, wrapInInlineCode } from "../utils/utils.js";
 import { compiledHovers, data, typedData } from "./data.js";
+import { globalData } from "../documentManager.js";
 import {
     MythicData,
     MythicField,
@@ -23,6 +24,7 @@ import {
 } from "./models.js";
 import { ArrayIncludes, FilterArrayKeyIncludes } from "../utils/types.js";
 import { Hover } from "vscode-languageserver";
+import { CustomRange, r } from "../utils/positionsAndRanges.js";
 
 export type MechanicsAndAliases = typeof data.mechanic[number]["names"];
 export type ConditionsAndAliases = typeof data.condition[number]["names"];
@@ -41,7 +43,7 @@ type b = typeof data.mechanic;
 //   ^?
 
 export function getAllMechanicsAndAliases(): string[] {
-    return typedData.mechanic.flatMap((m) => m.names);
+    return [...typedData.mechanic.flatMap((m) => m.names), ...[...globalData.mythic.skills].map((s) => `skill:${s.name}`)];
 }
 
 export function getAllConditionsAndAliases(): string[] {
@@ -53,6 +55,20 @@ export function getAllTargetersAndAliases(): string[] {
 }
 
 export function getHolderFromName(type: keyof MythicData, name: string): Optional<MythicHolder> {
+    if (type === "mechanic" && name.startsWith("skill:")) {
+        const skillName = name.slice("skill:".length);
+        const skill = [...globalData.mythic.skills].find((s) => s.name === skillName);
+        if (skill) {
+            return Optional.of({
+                names: [name],
+                description: `User-defined skill ${skillName}${(skill.description ? `\n\n${skill.description}` : "")}\n\nDefined in ${skill.path.fmt()}:${skill.declarationRange.fmt()}`,
+                definition: {
+                    doc: skill.path,
+                    range: skill.declarationRange,
+                }
+            });
+        }
+    }
     return Optional.of(typedData[type].find((h) => h.names.includes(name)));
 }
 

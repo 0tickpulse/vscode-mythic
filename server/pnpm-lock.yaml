@@ -28,6 +28,9 @@ dependencies:
   vscode-languageserver-textdocument:
     specifier: ^1.0.8
     version: 1.0.8
+  vscode-uri:
+    specifier: ^3.0.7
+    version: 3.0.7
   workerpool:
     specifier: ^6.4.0
     version: 6.4.0
@@ -2703,6 +2706,10 @@ packages:
 
   /vscode-textmate@8.0.0:
     resolution: {integrity: sha512-AFbieoL7a5LMqcnOF04ji+rpXadgOXnZsxQr//r83kLPr7biP7am3g9zbaZIaBGwBRWeSvoMD4mgPdX3e4NWBg==}
+    dev: false
+
+  /vscode-uri@3.0.7:
+    resolution: {integrity: sha512-eOpPHogvorZRobNqJGhapa0JdwaxpjVvyBp0QIUMRMSf8ZAlqOdEquKuRmw9Qwu0qXtJIWqFtMkmvJjUZmMjVA==}
     dev: false
 
   /walker@1.0.8:

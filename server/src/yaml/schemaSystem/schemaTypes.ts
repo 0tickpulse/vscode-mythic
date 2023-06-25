@@ -5,6 +5,9 @@ import { Resolver } from "../../mythicParser/resolver.js";
 import { CustomRange } from "../../utils/positionsAndRanges.js";
 import { getClosestTo } from "../../utils/utils.js";
 import { DocumentInfo } from "../parser/parser.js";
+import { CachedMythicSkill } from "../../mythicModels.js";
+import { globalData } from "../../documentManager.js";
+import { Hover } from "vscode-languageserver";
 
 export class SchemaValidationError {
     message: string;
@@ -25,24 +28,23 @@ export class SchemaValidationError {
 export abstract class YamlSchema {
     abstract getDescription(): string;
     /**
+     * Runs before validation.
+     *
+     * @param doc   The document to validate and modify
+     * @param value The value to validate and modify
+     */
+    preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+        return [];
+    }
+    /**
      * Performs validation on the given value, returning a list of errors.
      * This additionally modifies the document, adding things like hover text.
      *
      * @param doc   The document to validate and modify
      * @param value The value to validate and modify
      */
-    abstract validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[];
-    /**
-     * Like validateAndModify, but also times the execution. Used for debugging.
-     *
-     * @param doc   The document to validate and modify
-     * @param value The value to validate and modify
-     */
-    validateAndModifyTimed(doc: DocumentInfo, value: Node) {
-        console.time(`validateAndModify (${this.getTypeText()})`);
-        const errors = this.validateAndModify(doc, value);
-        console.timeEnd(`validateAndModify (${this.getTypeText()})`);
-        return errors;
+    validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+        return [];
     }
     getTypeText() {
         return "any";
@@ -66,7 +68,7 @@ export class YamlSchemaString extends YamlSchema {
     override getDescription() {
         return this.literal.map((literal) => `"${literal}"`).otherwise("a string");
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isScalar(value)) {
             return [new SchemaValidationError(this, "Expected a string!", source, value)];
@@ -109,7 +111,7 @@ export class YamlSchemaNumber extends YamlSchema {
         }
         return type;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         const range = value.range && CustomRange.fromYamlRange(source, value.range);
         if (!isScalar(value)) {
@@ -142,7 +144,7 @@ export class YamlSchemaBoolean extends YamlSchema {
     override getDescription() {
         return "a boolean";
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isScalar(value)) {
             return [new SchemaValidationError(this, "Expected a boolean!", source, value)];
@@ -167,7 +169,7 @@ export class YamlSchemaArray extends YamlSchema {
     override getDescription() {
         return `an array in which items are each '${this.itemSchema.getDescription()}'`;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (this.itemSchema instanceof YamlSchemaMythicSkill) {
             this.itemSchema.resolver = Optional.of(new Resolver());
         }
@@ -180,10 +182,20 @@ export class YamlSchemaArray extends YamlSchema {
         const errors: SchemaValidationError[] = [];
 
         value.items.forEach((item) => {
-            const innerErrors = this.itemSchema.validateAndModify(doc, item as Node);
+            const innerErrors = this.itemSchema.preValidate(doc, item as Node);
             errors.push(...innerErrors);
         });
 
+        return errors;
+    }
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+        // traverse children
+        const errors: SchemaValidationError[] = [];
+        isCollection(value) &&
+            value.items.forEach((item) => {
+                const innerErrors = this.itemSchema.validateAndModify(doc, item as Node);
+                errors.push(...innerErrors);
+            });
         return errors;
     }
     getTypeText() {
@@ -197,7 +209,7 @@ export class YamlSchemaTuple extends YamlSchema {
     override getDescription() {
         return `a tuple in which items are: '${this.itemSchema.map((schema) => schema.getDescription()).join("', '")}'`;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isCollection(value)) {
             return [new SchemaValidationError(this, "Expected a tuple!", source, value)];
@@ -205,13 +217,18 @@ export class YamlSchemaTuple extends YamlSchema {
         // check length
         if (value.items.length !== this.itemSchema.length) {
             return [
-                new SchemaValidationError(this, `Expected a tuple with ${this.itemSchema.length} items, but got ${value.items.length}!`, source, value),
+                new SchemaValidationError(
+                    this,
+                    `Expected a tuple with ${this.itemSchema.length} items, but got ${value.items.length}!`,
+                    source,
+                    value,
+                ),
             ];
         }
         // check items
         const errors: SchemaValidationError[] = [];
         for (let i = 0; i < this.itemSchema.length; i++) {
-            const innerErrors = this.itemSchema[i].validateAndModify(doc, value.items[i] as Node);
+            const innerErrors = this.itemSchema[i].preValidate(doc, value.items[i] as Node);
 
             errors.push(...innerErrors);
         }
@@ -251,7 +268,7 @@ export class YamlSchemaObject extends YamlSchema {
             .map(([key, { schema, required }]) => `${key}: ${schema.getDescription()}${required ? " (required)" : ""}`)
             .join("', '")}'`;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isMap(value)) {
             return [new SchemaValidationError(this, "Expected an object!", source, value)];
@@ -271,7 +288,7 @@ export class YamlSchemaObject extends YamlSchema {
             }) as { key: Node; value: Node } | undefined;
             if (item) {
                 if (item.value !== null) {
-                    const error = schema.validateAndModify(doc, item.value);
+                    const error = schema.preValidate(doc, item.value);
                     errors.push(...error);
                 }
                 if (item.key !== null && description) {
@@ -312,6 +329,25 @@ export class YamlSchemaObject extends YamlSchema {
 
         return errors;
     }
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+        if (!isMap(value)) {
+            return [];
+        }
+        const errors: SchemaValidationError[] = [];
+        const { items } = value;
+        for (const item of items) {
+            if (item.key !== null) {
+                const key = (item.key as any).value;
+                const schema = this.properties[key]?.schema;
+                if (!schema) {
+                    continue;
+                }
+                const innerErrors = schema.validateAndModify(doc, item.value as Node);
+                errors.push(...innerErrors);
+            }
+        }
+        return errors;
+    }
     getTypeText() {
         return `object(${Object.entries(this.properties)
             .map(([key, { schema }]) => `"${key}": ${schema.getTypeText()}`)
@@ -329,7 +365,7 @@ export class YamlSchemaMap extends YamlSchema {
     override getDescription() {
         return `a map in which values are each '${this.values.getDescription()}'`;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         if (!isMap(value)) {
             return [new SchemaValidationError(this, "Expected a map!", source, value)];
@@ -339,16 +375,105 @@ export class YamlSchemaMap extends YamlSchema {
 
         const { items } = value;
         for (const item of items) {
-            const error = this.values.validateAndModify(doc, item.value as Node);
+            const error = this.values.preValidate(doc, item.value as Node);
             errors.push(...error);
         }
 
+        return errors;
+    }
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+        // traverse children
+        const errors: SchemaValidationError[] = [];
+        isMap(value) &&
+            value.items.forEach((item) => {
+                const innerErrors = this.values.validateAndModify(doc, item.value as Node);
+                errors.push(...innerErrors);
+            });
         return errors;
     }
     getTypeText() {
         return `map(${this.values.getTypeText()})`;
     }
 }
+
+export class YamlSchemaMythicSkillMap extends YamlSchemaMap {
+    static generateKeyHover(name: string) {
+        return stripIndentation`# MetaSkill: \`${name}\`
+        Skills are a core feature of MythicMobs, allowing users to create custom abilities for their mobs or items that are triggered under various circumstances and with varying conditions.
+        A metaskill is a list of skills that can be called using a [🔗 Meta Mechanic](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Mechanics#advancedmeta-mechanics).
+
+        To declare a metaskill, use the following syntax:
+        ` + `
+        \`\`\`mythicyaml
+        internal_skillname:
+          Cooldown: [seconds]
+          OnCooldownSkill: [the metaskill to execute if this one is on cooldown]
+          CancelIfNoTargets: [true/false]
+          Conditions:
+          - condition1
+          - condition2
+          TargetConditions:
+          - condition3
+          - condition4
+          TriggerConditions:
+          - condition5
+          - condition6
+          Skills:
+          - mechanic1
+          - mechanic2
+        \`\`\`
+        `.split("\n").map((line) => line.substring(8)).join("\n") + stripIndentation`
+        ## See Also
+
+        * [🔗 Wiki: Skills](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Skills)
+        * [🔗 Wiki: Metaskills](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Metaskills)
+        `;
+    }
+    override getDescription() {
+        return "a map in which values are each a skill";
+    }
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+        const source = doc.base.getText();
+        if (!isMap(value)) {
+            return [new SchemaValidationError(this, "Expected a map!", source, value)];
+        }
+
+        const errors: SchemaValidationError[] = [];
+
+        const { items } = value;
+        for (const item of items) {
+            if (item.key !== null) {
+                const key = (item.key as Node).toString();
+                const declarationRange = CustomRange.fromYamlRange(source, (item.key as Node).range!);
+                const description = (item.key as Node).commentBefore ?? undefined;
+                globalData.mythic.skills.add(new CachedMythicSkill(doc, [item.key as Node, item.value as Node], declarationRange, key, description));
+                doc.addHover({
+                    range: declarationRange,
+                    contents: YamlSchemaMythicSkillMap.generateKeyHover(key),
+                })
+            }
+            const error = this.values.preValidate(doc, item.value as Node);
+            errors.push(...error);
+        }
+        return errors;
+    }
+    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+        if (!isMap(value)) {
+            return [];
+        }
+        const errors: SchemaValidationError[] = [];
+        const { items } = value;
+        for (const item of items) {
+            const error = this.values.validateAndModify(doc, item.value as Node);
+            errors.push(...error);
+        }
+        return errors;
+    }
+    getTypeText() {
+        return `map(${this.values.getTypeText()})`;
+    }
+}
+
 export class YamlSchemaUnion extends YamlSchema {
     items: readonly YamlSchema[] = [];
     constructor(...items: readonly YamlSchema[]) {
@@ -361,10 +486,10 @@ export class YamlSchemaUnion extends YamlSchema {
     override getDescription() {
         return `one of these: '${this.items.map((item) => item.getDescription()).join("', '")}'`;
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         for (const item of this.items) {
-            const error = item.validateAndModify(doc, value);
+            const error = item.preValidate(doc, value);
             if (error.length === 0) {
                 return [];
             }
@@ -408,7 +533,9 @@ export class YamlSchemaMythicSkill extends YamlSchema {
 
         const ast = getAst(skillLine);
         if (ast.hasErrors()) {
-            return ast.errors!.map((error) => new SchemaValidationError(this, error.message, source, value, error.range.addOffset(source, rangeOffset[0])));
+            return ast.errors!.map(
+                (error) => new SchemaValidationError(this, error.message, source, value, error.range.addOffset(source, rangeOffset[0])),
+            );
         }
 
         this.resolver.ifPresent((r) => {
@@ -430,7 +557,7 @@ export class YamlSchemaMythicItem extends YamlSchema {
     override getDescription() {
         return "an item";
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         return [];
     }
@@ -446,7 +573,7 @@ export class YamlSchemaMythicCondition extends YamlSchema {
     override getDescription() {
         return "a condition";
     }
-    override validateAndModify(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const source = doc.base.getText();
         return [];
     }

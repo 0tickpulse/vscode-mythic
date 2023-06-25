@@ -1,5 +1,15 @@
 # Changelogs
 
+## 1.9.0
+
+- Internal code cleanup
+- Goto definition support
+- Goto reference support
+- Improved the MythicSkill schema
+- Added hover with inference for health modifiers
+- Extension now fully scans the workspace when activated
+- Parsing is now split into two steps, each individually iterating over all queued files. This improves IntelliSense.
+
 ## 1.8.4
 
 - Finalized the new performance optimizations

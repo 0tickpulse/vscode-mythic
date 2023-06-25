@@ -1,12 +1,22 @@
-import { Pool, Worker, expose, isWorkerRuntime, spawn } from "threads";
-import { Optional, Result } from "tick-ts-utils";
+import { Optional } from "tick-ts-utils";
 import { Diagnostic, Hover } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Document } from "yaml";
 import { Highlight } from "../../colors.js";
 import { CustomPosition, CustomRange, r } from "../../utils/positionsAndRanges.js";
 import { YamlSchema } from "../schemaSystem/schemaTypes.js";
-import { ParseSync, parseSyncInner } from "./parseSync.js";
+import { URI } from "vscode-uri";
+
+/**
+ * Describes a link between two ranges in two documents.
+ * Used, for example, with goto definition and goto references.
+ */
+export class RangeLink {
+    constructor(public fromRange: CustomRange, public targetRange: CustomRange, public targetDoc: DocumentInfo) {}
+    toString() {
+        return `RangeLink(${this.fromRange} -> ${this.targetDoc} ${this.targetRange})`;
+    }
+}
 
 export class DocumentInfo {
     /** cached source */
@@ -15,7 +25,9 @@ export class DocumentInfo {
     schema: Optional<YamlSchema> = Optional.empty();
     errors: Diagnostic[] = [];
     // highlights: Map<number, Color> = new Map();
-    #highlights: Highlight[] = [];
+    highlights: Highlight[] = [];
+    gotoDefinitions: RangeLink[] = [];
+    gotoReferences: RangeLink[] = [];
     constructor(public base: TextDocument, public yamlAst: Document, hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
         this.source = base.getText();
         this.hovers = hovers ?? [];
@@ -33,7 +45,7 @@ export class DocumentInfo {
     }
     addHighlight(highlight: Highlight) {
         if (highlight.range.start.line === highlight.range.end.line) {
-            this.#highlights.unshift(highlight);
+            this.highlights.unshift(highlight);
             return;
         }
 
@@ -46,43 +58,30 @@ export class DocumentInfo {
                 new CustomPosition(highlight.range.start.line + i, lastChar),
                 new CustomPosition(highlight.range.start.line + i, lastChar + lineLength),
             );
-            this.#highlights.unshift(new Highlight(range, highlight.color));
+            this.highlights.unshift(new Highlight(range, highlight.color));
             lastChar = 0;
         }
     }
-    get highlights() {
-        return this.#highlights;
+    addGotoDefinitionAndReverseReference(definition: RangeLink) {
+        this.addGotoDefinition(definition);
+        definition.targetDoc.addGotoReference(new RangeLink(definition.targetRange, definition.fromRange, this));
+    }
+    addGotoDefinition(definition: RangeLink) {
+        this.gotoDefinitions.push(definition);
+    }
+    addGotoReference(reference: RangeLink) {
+        this.gotoReferences.push(reference);
     }
     getHoversAt(position: CustomPosition): Hover[] {
         return this.hovers.filter((hover) => r(hover.range!).contains(position));
     }
     removeAllHighlights() {
-        this.#highlights = [];
+        this.highlights = [];
+    }
+    toString() {
+        return `DocumentInfo(${this.base.uri})`;
+    }
+    fmt() {
+        return URI.parse(this.base.uri).fsPath;
     }
 }
-
-/**
- * It currently doesn't work.
- */
-// export const WORKER_POOL = Pool(() => spawn<ParseSync>(new Worker("./server.js")), { size: 4 });
-
-/**
- * Please don't use this function. It doesn't work.
- *
- * Like {@link parseSyncInner} but runs in a separate worker thread instead of the main thread.
- * This allows for concurrent parsing of multiple documents at once.
- *
- * @param document The document to parse.
- * @returns The parsed document.
- */
-// export async function parse(document: TextDocument): Promise<Result<DocumentInfo, unknown>> {
-//     try {
-//         return Result.ok(
-//             await WORKER_POOL.queue((worker) =>
-//                 worker.parseSync({ uri: document.uri, languageId: document.languageId, version: document.version, source: document.getText() }),
-//             ),
-//         );
-//     } catch (e) {
-//         return Result.error(e);
-//     }
-// }

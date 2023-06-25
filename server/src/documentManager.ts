@@ -3,7 +3,9 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { DocumentInfo } from "./yaml/parser/parser.js";
 import { CachedMythicSkill } from "./mythicModels.js";
 
-export const data = {
+export const FILE_EXTENSIONS = [".yml", ".yaml", ".mythic"];
+
+export const globalData = {
     documents: {
         manager: new TextDocuments(TextDocument),
         list: new Map<string, DocumentInfo>(),
@@ -15,6 +17,6 @@ export const data = {
         },
     },
     mythic: {
-        skills: [] as CachedMythicSkill[],
+        skills: new Set<CachedMythicSkill>(),
     }
 };

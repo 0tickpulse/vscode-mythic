@@ -1,4 +1,6 @@
 import { Hover } from "vscode-languageserver";
+import { RangeLink, DocumentInfo } from "../yaml/parser/parser.js";
+import { CustomRange } from "../utils/positionsAndRanges.js";
 
 export type MythicHolderType = "mechanic" | "condition" | "targeter";
 
@@ -16,6 +18,10 @@ export type MythicHolder = {
     examples?: Example[];
     fields?: MythicField[];
     pluginRequirements?: PluginRequirement[];
+    definition?: {
+        range: CustomRange;
+        doc: DocumentInfo;
+    };
 };
 
 export type MythicField = {
@@ -138,7 +144,7 @@ export type MythicFieldTypePotion = {
 
 export type MythicFieldTypeEnchantment = {
     type: "enchantment";
-}
+};
 
 export type MythicFieldTypeMythicMob = {
     type: "mythicMob";

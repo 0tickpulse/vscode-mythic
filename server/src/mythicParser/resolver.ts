@@ -29,7 +29,7 @@ import {
 } from "./parserExpressions.js";
 import { MythicToken } from "./scanner.js";
 import { Hover, SemanticTokenTypes } from "vscode-languageserver";
-import { DocumentInfo } from "../yaml/parser/parser.js";
+import { RangeLink, DocumentInfo } from "../yaml/parser/parser.js";
 import { CustomRange, r } from "../utils/positionsAndRanges.js";
 import { Optional, stripIndentation } from "tick-ts-utils";
 import { Highlight } from "../colors.js";
@@ -38,6 +38,7 @@ export class Resolver extends ExprVisitor<void> {
     #source: string = "";
     #hovers: Hover[] = [];
     #errors: ResolverError[] = [];
+    #gotoDefinitions: RangeLink[] = [];
     #characters: Map<CustomRange, SemanticTokenTypes> = new Map();
     #skillVariables: Map<string, MlcValueExpr | SkillLineExpr> = new Map();
     #currentSkill: SkillLineExpr | undefined = undefined;
@@ -54,6 +55,7 @@ export class Resolver extends ExprVisitor<void> {
         this.#hovers = [];
         this.#errors = [];
         this.#characters = new Map();
+        this.#gotoDefinitions = [];
         this.resolve();
         const hoverRanges = CustomRange.addMultipleOffsets(
             sourceText,
@@ -74,6 +76,16 @@ export class Resolver extends ExprVisitor<void> {
         const characterRanges = CustomRange.addMultipleOffsets(sourceText, Array.from(this.#characters.keys()), initialOffset);
         this.#characters.forEach((color, range) => {
             doc.addHighlight(new Highlight(characterRanges.shift()!, color));
+        });
+        const defRanges = CustomRange.addMultipleOffsets(
+            sourceText,
+            this.#gotoDefinitions.map((def) => def.fromRange),
+            initialOffset,
+        );
+        this.#gotoDefinitions.forEach((def) => {
+            const range = defRanges.shift()!;
+            def.fromRange = range;
+            doc.addGotoDefinitionAndReverseReference(def);
         });
     }
     #addHighlight(range: CustomRange, color: SemanticTokenTypes) {
@@ -124,70 +136,77 @@ export class Resolver extends ExprVisitor<void> {
         mechanic.rightBrace && this.#addHighlight(mechanic.rightBrace.range, SemanticTokenTypes.operator);
 
         if (!getAllMechanicsAndAliases().includes(mechanicName)) {
-            !mechanicName.toLowerCase().startsWith("skill:") &&
-                this.#errors.push(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill));
+            this.#errors.push(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill));
             return;
         }
-        this.#hovers.push({
-            ...generateHover("mechanic", mechanicName, getHolderFromName("mechanic", mechanicName).get()),
-            range: mechanic.getNameRange(),
-        });
 
         /** Whether to keep resolving */
         let keepResolving = true;
-        const mechanicData: MythicHolder = getHolderFromName("mechanic", mechanicName).get();
-        if (mechanicData.fields !== undefined) {
-            const fields = getAllFields("mechanic", mechanicName);
-            const fieldsAndAliases = fields.flatMap((field) => field.names);
-            for (const [key, arg] of mechanic.mlcsToTokenMap()) {
-                if (!fieldsAndAliases.includes(key.lexeme ?? "")) {
-                    this.#addError(
-                        stripIndentation`Unknown field '${key.lexeme ?? ""}' for mechanic '${mechanicName}'
+        const mechanicData: Optional<MythicHolder> = getHolderFromName("mechanic", mechanicName);
+        mechanicData
+            .ifPresent((data) => {
+                this.#hovers.push({
+                    ...generateHover("mechanic", mechanicName, data),
+                    range: mechanic.getNameRange(),
+                });
+                if (data.definition) {
+                    this.#gotoDefinitions.push(new RangeLink(mechanic.getNameRange(), data.definition.range, data.definition.doc));
+                }
+            })
+            .map((d) => d.fields)
+            .ifPresent((fields) => {
+                const fieldsAndAliases = fields.flatMap((field) => field.names);
+                for (const [key, arg] of mechanic.mlcsToTokenMap()) {
+                    if (!fieldsAndAliases.includes(key.lexeme ?? "")) {
+                        this.#addError(
+                            stripIndentation`Unknown field '${key.lexeme ?? ""}' for mechanic '${mechanicName}'
                         Possible fields: ${fieldsAndAliases.map((a) => `\`${a}\``).join(", ")}`,
-                        arg,
-                        key.range,
-                    );
+                            arg,
+                            key.range,
+                        );
+                        continue;
+                    }
+                    this.#resolveExpr(arg);
+                    const matchedField = fields.find((field) => field.names.includes(key.lexeme ?? ""))!;
+                    // field is valid, add hover
+                    this.#hovers.push({
+                        contents: generateHoverForField(mechanicName, "mechanic", key.lexeme!, matchedField, true),
+                        range: key.range,
+                    });
                 }
-                this.#resolveExpr(arg);
-                const matchedField = fields.find((field) => field.names.includes(key.lexeme ?? ""))!;
-                // field is valid, add hover
-                this.#hovers.push({ contents: generateHoverForField(mechanicName, "mechanic", key.lexeme!, matchedField, true), range: key.range });
-            }
-            for (const [name, { required }] of Object.entries(mechanicData.fields)) {
-                if (required && !fieldsAndAliases.some((value) => mechanic.mlcsToMap().has(value))) {
-                    this.#addError(`Missing required field '${name}' for mechanic '${mechanicName}'`, mechanic, mechanic.getNameRange());
-                    keepResolving = false;
+                for (const [name, { required }] of Object.entries(fields)) {
+                    if (required && !fieldsAndAliases.some((value) => mechanic.mlcsToMap().has(value))) {
+                        this.#addError(`Missing required field '${name}' for mechanic '${mechanicName}'`, mechanic, mechanic.getNameRange());
+                        keepResolving = false;
+                    }
                 }
-            }
-        }
-        if (!keepResolving) {
-            return;
-        }
+                if (!keepResolving) {
+                    return;
+                }
 
-        if (mechanicData.fields !== undefined) {
-            for (const [key, arg] of mechanic.mlcsToMap()) {
-                if (arg instanceof InlineSkillExpr) {
-                    continue;
+                for (const [key, arg] of mechanic.mlcsToMap()) {
+                    if (arg instanceof InlineSkillExpr) {
+                        continue;
+                    }
+                    if (arg.identifiers.some((value) => value instanceof MlcPlaceholderExpr)) {
+                        continue;
+                    }
+                    const value = arg.identifiers.map((value) => (value as MythicToken[]).map((token) => token.lexeme)).join("");
+                    const field = getHolderFieldFromName(mechanicData.get(), key).otherwise(undefined);
+                    if (field === undefined) {
+                        continue;
+                    }
+                    const type = field.type;
+                    const validationResults = validate(type, arg);
+                    if (validationResults.length > 0) {
+                        this.#addError(
+                            `Invalid value '${value}' for field '${key}' of mechanic '${mechanicName}'. ${validationResults.join(" ")}`,
+                            arg,
+                            arg.range,
+                        );
+                    }
                 }
-                if (arg.identifiers.some((value) => value instanceof MlcPlaceholderExpr)) {
-                    continue;
-                }
-                const value = arg.identifiers.map((value) => (value as MythicToken[]).map((token) => token.lexeme)).join("");
-                const field = getHolderFieldFromName(mechanicData, key).otherwise(undefined);
-                if (field === undefined) {
-                    continue;
-                }
-                const type = field.type;
-                const validationResults = validate(type, arg);
-                if (validationResults.length > 0) {
-                    this.#addError(
-                        `Invalid value '${value}' for field '${key}' of mechanic '${mechanicName}'. ${validationResults.join(" ")}`,
-                        arg,
-                        arg.range,
-                    );
-                }
-            }
-        }
+            });
 
         if (!keepResolving) {
             return;
@@ -310,7 +329,28 @@ export class Resolver extends ExprVisitor<void> {
         }
     }
     override visitHealthModifierExpr(healthModifier: HealthModifierExpr): void {
-        const { operator, valueOrRange } = healthModifier;
+        const { operator, valueOrRange, range } = healthModifier;
+        this.#hovers.push({
+            contents: {
+                kind: "markdown",
+                value: stripIndentation`# Health modifier
+
+                Inferred meaning: ${
+                    healthModifier.isRange(valueOrRange)
+                        ? `Health must be between ${(valueOrRange[0][0].lexeme ?? "") + (valueOrRange[0][1]?.lexeme ?? "")} and ${
+                              (valueOrRange[1][0].lexeme ?? "") + (valueOrRange[1][1]?.lexeme ?? "")
+                          }`
+                        : `Health must be ${operator.lexeme === "=" ? "exactly" : operator.lexeme === ">" ? "greater than" : "less than"} ${
+                              (valueOrRange[0].lexeme ?? "") + (valueOrRange[1]?.lexeme ?? "sdfg")
+                          }`
+                }
+
+                ## See Also
+
+                * [🔗 Wiki: Skills#Health Modifiers](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Skills)`,
+            },
+            range,
+        });
         this.#addHighlight(operator.range, SemanticTokenTypes.operator);
         if (healthModifier.isRange(valueOrRange)) {
             const from = valueOrRange[0];

@@ -1,15 +1,17 @@
 import { Hover, HoverParams, ServerRequestHandler } from "vscode-languageserver";
-import { data } from "../documentManager.js";
+import { globalData } from "../documentManager.js";
 import { p } from "../utils/positionsAndRanges.js";
+import { server } from "../index.js";
 
-export const hover: ServerRequestHandler<HoverParams, Hover | null | undefined, never, void> = (params: HoverParams) => {
-    const doc = data.documents.getDocument(params.textDocument.uri);
+export const hover: ServerRequestHandler<HoverParams, Hover | null | undefined, never, void> = ({ textDocument, position }: HoverParams) => {
+    const doc = globalData.documents.getDocument(textDocument.uri);
     if (!doc) {
         return null;
     }
-    const hovers = doc.getHoversAt(p(params.position));
+    const hovers = doc.getHoversAt(p(position));
     if (hovers.length === 0) {
         return null;
     }
     return hovers[0];
+    //return { contents: [...server.data.mythic.skills].join("\n") };
 };
