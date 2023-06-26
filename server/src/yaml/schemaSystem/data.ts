@@ -19,7 +19,7 @@ export const mythicSkillSchema: YamlSchema = new YamlSchemaMythicSkillMap(
         Cooldown: { schema: new YNum(0), required: false, description: "The cooldown of this skill in seconds.\n\n## See Also\n\n* [🔗 Wiki: Skills/Metaskills#Cooldown](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Metaskills#cooldown)" },
         OnCooldownSkill: { schema: new YString(), required: false, description: "The skill to use when this skill is on cooldown.\n\n## See Also\n\n* [🔗 Wiki: Skills/Metaskills#OnCooldownSkill](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Metaskills#oncooldownskill)" },
         Skills: { schema: new YArr(new YSkill()), required: false, description: "The mechanics that are run when this skill is used.\n\n## See Also\n\n* [🔗 Wiki: Skills/Metaskills#Skills](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Metaskills#skills)" },
-    }),
+    }).setName("MythicSkillMap"),
 );
 
 export const PATH_MAP = new Map<string, { schema: YamlSchema; picoMatch: picomatch.Matcher }>();

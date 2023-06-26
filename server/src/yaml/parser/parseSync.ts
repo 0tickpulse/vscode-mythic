@@ -8,7 +8,31 @@ import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import { PATH_MAP } from "../schemaSystem/data.js";
 import { DocumentInfo } from "./parser.js";
 
-export const PARSE_QUEUE: Set<TextDocument> = new Set();
+class DocumentQueue {
+    #items: TextDocument[] = [];
+    get items() {
+        return this.#items;
+    }
+    add(doc: TextDocument) {
+        for (const item of this.#items) {
+            if (item.uri === doc.uri) {
+                return;
+            }
+        }
+        this.#items.push(doc);
+    }
+    get size() {
+        return this.#items.length;
+    }
+    clear() {
+        this.#items = [];
+    }
+    forEach(callback: (doc: TextDocument) => void) {
+        this.#items.forEach(callback);
+    }
+}
+
+export const PARSE_QUEUE = new DocumentQueue();
 export let scheduledParse: Optional<NodeJS.Timeout> = Optional.empty();
 export function queueDocumentForParse(doc: TextDocument) {
     PARSE_QUEUE.add(doc);
@@ -40,17 +64,20 @@ export function scheduleParse() {
             const diagnostics = new Map<string, Diagnostic[]>();
             flushProcedures.forEach((procedure) => procedure());
             PARSE_QUEUE.forEach((doc) => {
-                const documentInfo = parseSync(doc);
+                const documentInfo = preParse(doc);
                 globalData.documents.set(documentInfo);
-                diagnostics.set(doc.uri, documentInfo.errors);
+                console.log(`[parseSync] Preparsed ${doc.uri} (${documentInfo.errors.length} errors)`);
             });
             PARSE_QUEUE.forEach((doc) => {
                 const documentInfo = postParse(globalData.documents.getDocument(doc.uri)!); // non-null assertion because we just set it in the previous closure
                 globalData.documents.set(documentInfo);
-                diagnostics.get(doc.uri)!.push(...documentInfo.errors); // non-null assertion because we just set it in the previous closure
+                console.log(`[parseSync] Postparsed ${doc.uri} (${documentInfo.errors.length} errors)`);
+                diagnostics.set(doc.uri, documentInfo.errors);
             });
+            // clear diagnostics
             diagnostics.forEach((diagnostics, uri) => {
                 server.connection.sendDiagnostics({ uri, diagnostics });
+                console.log(`[parseSync] Sent ${diagnostics.length} diagnostics for ${uri}`);
             });
             PARSE_QUEUE.clear();
             server.connection.languages.semanticTokens.refresh();
@@ -58,12 +85,11 @@ export function scheduleParse() {
     );
 }
 
-function parseSync(doc: TextDocument) {
-    const { uri, languageId, version } = doc;
+function preParse(doc: TextDocument) {
+    const { uri } = doc;
     console.time(`[parseSync] preParse ${uri}`);
     const source = doc.getText();
-    const document = TextDocument.create(uri, languageId, version, source);
-    const documentInfo = new DocumentInfo(document, parseDocument(source));
+    const documentInfo = new DocumentInfo(doc, parseDocument(source));
     const { yamlAst } = documentInfo;
     const { contents } = yamlAst;
     if (contents === null) {
@@ -107,7 +133,7 @@ function parseSync(doc: TextDocument) {
 function postParse(doc: DocumentInfo) {
     console.time(`[parseSync] postParse ${doc.base.uri}`);
     doc.schema.ifPresent((schema) => {
-        const errors = schema.validateAndModify(doc, doc.yamlAst.contents!);
+        const errors = schema.postValidate(doc, doc.yamlAst.contents!);
         errors.forEach((error) => {
             error.range !== null &&
                 doc.addError({

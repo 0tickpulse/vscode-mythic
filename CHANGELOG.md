@@ -1,5 +1,10 @@
 # Changelogs
 
+## 1.9.1
+
+- Fixed an issue where errors would be duplicated
+- Made some SchemaValidationErrors' messages better
+
 ## 1.9.0
 
 - Internal code cleanup
