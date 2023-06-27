@@ -10,6 +10,9 @@ dependencies:
   vscode-languageserver:
     specifier: ^8.1.0
     version: 8.1.0
+  vscode-uri:
+    specifier: ^3.0.7
+    version: 3.0.7
 
 devDependencies:
   '@types/node':
@@ -385,6 +388,10 @@ packages:
       https-proxy-agent: 2.2.4
     transitivePeerDependencies:
       - supports-color
+    dev: false
+
+  /vscode-uri@3.0.7:
+    resolution: {integrity: sha512-eOpPHogvorZRobNqJGhapa0JdwaxpjVvyBp0QIUMRMSf8ZAlqOdEquKuRmw9Qwu0qXtJIWqFtMkmvJjUZmMjVA==}
     dev: false
 
   /vscode@1.1.37:

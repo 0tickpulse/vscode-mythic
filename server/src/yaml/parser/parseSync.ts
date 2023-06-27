@@ -111,10 +111,11 @@ function preParse(doc: TextDocument) {
             source: "Mythic Language Server",
         }),
     );
-    if (!schema.isEmpty()) {
+    schema.ifPresent((schema) => {
+        server.connection.sendRequest("language/setLanguage", { uri, language: "mythic" });
         // console.log(`Schema found for ${uri}: ${schema.get().getDescription()}`);
         // const errors = [...schema.get().preValidate(documentInfo, yamlAst.contents!), ...schema.get().validateAndModify(documentInfo, yamlAst.contents!)];
-        const errors = schema.get().preValidate(documentInfo, yamlAst.contents!);
+        const errors = schema.preValidate(documentInfo, yamlAst.contents!);
         errors.forEach((error) => {
             error.range !== null &&
                 documentInfo.addError({
@@ -124,7 +125,7 @@ function preParse(doc: TextDocument) {
                     source: "Mythic Language Server",
                 });
         });
-    }
+    });
     console.timeEnd(`[parseSync] preParse ${uri}`);
 
     return documentInfo;

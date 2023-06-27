@@ -109,7 +109,7 @@ export class Parser {
         const mechanic = this.#mechanic();
         let targeter: TargeterExpr | undefined = undefined;
         let trigger: TriggerExpr | undefined = undefined;
-        let conditions: InlineConditionExpr[] = [];
+        const conditions: InlineConditionExpr[] = [];
         let chance: MythicToken | undefined = undefined;
         let healthModifier: HealthModifierExpr | undefined = undefined;
 

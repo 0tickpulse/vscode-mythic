@@ -11,12 +11,18 @@
 
 <p align="center">A Visual Studio Code extension that adds language support for MythicMobs configurations.</p>
 
+## 🚨 Disclaimer
+
+This extension is still in development. It is not yet ready for use.
+
 ## 📖 Table of Contents
 
+- [🚨 Disclaimer](#-disclaimer)
 - [📖 Table of Contents](#-table-of-contents)
 - [🚀 Features](#-features)
   - [🎉 Current](#-current)
     - [Basic Syntax Highlighting](#basic-syntax-highlighting)
+    - [Go to definition and references](#go-to-definition-and-references)
   - [🚧 Planned](#-planned)
 - [📦 Installation](#-installation)
 - [📝 License](#-license)
@@ -32,12 +38,14 @@
 
 (Using the [One Dark Pro](https://marketplace.visualstudio.com/items?itemName=zhuangtongfa.Material-theme) theme and the [CodeSnap](https://marketplace.visualstudio.com/items?itemName=adpyke.codesnap) extension)
 
+#### Go to definition and references
+
+(Todo: Add gif)
+
 ### 🚧 Planned
 
-- Diagnostics
-- Full workspace scanning
-- Go to definition
-- Go to references
+- Complete data set
+- Autocompletions
 
 ## 📦 Installation
 

@@ -88,11 +88,14 @@ export class YamlSchemaString extends YamlSchema {
     }
 }
 export class YamlSchemaNumber extends YamlSchema {
-    constructor(public lowerBound?: number, public upperBound?: number, public isInteger?: boolean) {
+    constructor(
+        public lowerBound?: number,
+        public upperBound?: number,
+        public lowerBoundInclusive = true,
+        public upperBoundInclusive = true,
+        public isInteger?: boolean,
+    ) {
         super();
-        this.lowerBound = lowerBound;
-        this.upperBound = upperBound;
-        this.isInteger = isInteger;
     }
     setLowerBound(lowerBound: number) {
         this.lowerBound = lowerBound;
@@ -129,11 +132,11 @@ export class YamlSchemaNumber extends YamlSchema {
         if (isNaN(num)) {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, source, value, range)];
         }
-        if (this.lowerBound !== undefined && num < this.lowerBound) {
-            return [new SchemaValidationError(this, `Expected a number greater than ${this.lowerBound}!`, source, value, range)];
+        if (this.lowerBound !== undefined && (this.lowerBoundInclusive ? num < this.lowerBound : num <= this.lowerBound)) {
+            return [new SchemaValidationError(this, `Expected a number greater than ${this.lowerBoundInclusive ? "or equal to " : ""}${this.lowerBound}!`, source, value, range)];
         }
-        if (this.upperBound !== undefined && num > this.upperBound) {
-            return [new SchemaValidationError(this, `Expected a number less than ${this.upperBound}!`, source, value, range)];
+        if (this.upperBound !== undefined && (this.upperBoundInclusive ? num > this.upperBound : num >= this.upperBound)) {
+            return [new SchemaValidationError(this, `Expected a number less than ${this.upperBoundInclusive ? "or equal to " : ""}${this.upperBound}!`, source, value, range)];
         }
         if (this.isInteger && !Number.isInteger(num)) {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, source, value, range)];
@@ -406,12 +409,14 @@ export class YamlSchemaMap extends YamlSchema {
 
 export class YamlSchemaMythicSkillMap extends YamlSchemaMap {
     static generateKeyHover(name: string) {
-        return stripIndentation`# MetaSkill: \`${name}\`
+        return (
+            stripIndentation`# MetaSkill: \`${name}\`
         Skills are a core feature of MythicMobs, allowing users to create custom abilities for their mobs or items that are triggered under various circumstances and with varying conditions.
         A metaskill is a list of skills that can be called using a [🔗 Meta Mechanic](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Mechanics#advancedmeta-mechanics).
 
         To declare a metaskill, use the following syntax:
-        ` + `
+        ` +
+            `
         \`\`\`mythicyaml
         internal_skillname:
           Cooldown: [seconds]
@@ -430,12 +435,17 @@ export class YamlSchemaMythicSkillMap extends YamlSchemaMap {
           - mechanic1
           - mechanic2
         \`\`\`
-        `.split("\n").map((line) => line.substring(8)).join("\n") + stripIndentation`
+        `
+                .split("\n")
+                .map((line) => line.substring(8))
+                .join("\n") +
+            stripIndentation`
         ## See Also
 
         * [🔗 Wiki: Skills](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Skills)
         * [🔗 Wiki: Metaskills](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Metaskills)
-        `;
+        `
+        );
     }
     override getDescription() {
         return "a map in which values are each a skill";
@@ -458,7 +468,7 @@ export class YamlSchemaMythicSkillMap extends YamlSchemaMap {
                 doc.addHover({
                     range: declarationRange,
                     contents: YamlSchemaMythicSkillMap.generateKeyHover(key),
-                })
+                });
             }
             const error = this.values.preValidate(doc, item.value as Node);
             errors.push(...error);

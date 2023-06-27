@@ -4,7 +4,7 @@ import { filterMap } from "../utils/utils.js";
 import { Optional } from "tick-ts-utils";
 import { p } from "../utils/positionsAndRanges.js";
 
-export default ({ context, position, textDocument }: ReferenceParams): Location[] => {
+export default ({ position, textDocument }: ReferenceParams): Location[] => {
     const { uri } = textDocument;
     console.log(`[referenceService] ${textDocument.uri}`);
     const doc = globalData.documents.getDocument(uri);

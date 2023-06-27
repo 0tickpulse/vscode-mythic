@@ -1,6 +1,6 @@
 import { SemanticTokens, SemanticTokensParams } from "vscode-languageserver";
 import { globalData } from "../documentManager.js";
-import { PARSE_QUEUE, onFlush } from "../yaml/parser/parseSync.js";
+import { PARSE_QUEUE } from "../yaml/parser/parseSync.js";
 
 // /**
 //  * Map of document URIs to semantic tokens.
@@ -21,13 +21,13 @@ export default ({ textDocument }: SemanticTokensParams): SemanticTokens => {
     const doc = globalData.documents.getDocument(uri);
     if (!doc) {
         console.log(`[semanticTokensService] ${textDocument.uri} (no document)`);
-        return { data: [] };
+        return null as unknown as SemanticTokens; // the lsp spec allows null to be returned, but the typescript types don't. this should hopefully be fixed soon
     }
-    const { highlights, base } = doc;
+    const { highlights  } = doc;
 
     if (PARSE_QUEUE.size > 0) {
         // hasn't been parsed yet
-        return { data: [] };
+        return null as unknown as SemanticTokens; // refer to above comment
     }
 
     console.log(`Processing ${highlights.length} highlights`);

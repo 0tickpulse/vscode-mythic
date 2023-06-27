@@ -28,3 +28,7 @@ export function filterMap<T, U>(array: T[], filter: (value: T) => Optional<U>): 
     }
     return result;
 }
+
+export function todo(message = "Implement") {
+    console.warn(`Hit TODO: ${message}`);
+}

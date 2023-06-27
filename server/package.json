@@ -34,6 +34,7 @@
         "@types/picomatch": "^2.3.0",
         "js-levenshtein": "^1.1.6",
         "linked-list": "^3.1.0",
+        "node@latest": "link:vscode-languageserver/node@latest",
         "picomatch": "^2.3.1",
         "threads": "^1.7.0",
         "tick-ts-utils": "^4.2.2",

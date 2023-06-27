@@ -1,8 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 
 import { join } from "path";
-import { ExtensionContext } from "vscode";
+import { ExtensionContext, languages, workspace } from "vscode";
 import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node.js";
+import { URI } from "vscode-uri";
 
 let client: LanguageClient;
 
@@ -12,7 +13,7 @@ export async function activate(context: ExtensionContext) {
     const serverModule = context.asAbsolutePath(join("dist", "server.js"));
     log(`Mythic Language Client
         Node Version: ${process.version}
-        File: ${__filename}`)
+        File: ${__filename}`);
     log(`Attempting to start server from '${serverModule}'...`);
     const debugOptions: ForkOptions = { execArgv: ["--nolazy"] };
     const serverOptions: ServerOptions = {
@@ -24,7 +25,12 @@ export async function activate(context: ExtensionContext) {
         },
     };
     const clientOptions: LanguageClientOptions = {
-        documentSelector: [{ scheme: "file", language: "mythic" }],
+        documentSelector: [
+            {
+                scheme: "file",
+                language: "mythic",
+            },
+        ],
     };
 
     // log the command that is being run
@@ -34,7 +40,19 @@ export async function activate(context: ExtensionContext) {
 
     client.start();
     log("Server started!");
+
+    client.onRequest("language/setLanguage", async ({ uri, language }: SetLanguageParams) => {
+        log(`Setting language for ${uri} to ${language}`);
+        const path = URI.parse(uri).fsPath;
+        const doc = await workspace.openTextDocument(path);
+        languages.setTextDocumentLanguage(doc, language);
+    });
 }
+
+type SetLanguageParams = {
+    uri: string;
+    language: string;
+};
 
 export function log(msg: string) {
     console.log(`${new Date().toLocaleTimeString()}: ${msg}`);

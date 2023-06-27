@@ -1,5 +1,12 @@
 # Changelogs
 
+## 1.9.2
+
+- Added inclusive range support for numbers. This means that errors will be more specific.
+- SemanticTokens now returns null if parsing is not done instead of an empty array. This fixes a bug where all semantic tokens will be removed between edits and the next parse.
+- Updated README
+- Extension now automatically detects MythicMobs configuration YAML files. This means that you no longer have to manually set the language mode.
+
 ## 1.9.1
 
 - Fixed an issue where errors would be duplicated

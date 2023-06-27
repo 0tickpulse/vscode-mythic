@@ -13,6 +13,9 @@ dependencies:
   linked-list:
     specifier: ^3.1.0
     version: 3.1.0
+  node@latest:
+    specifier: link:vscode-languageserver/node@latest
+    version: link:vscode-languageserver/node@latest
   picomatch:
     specifier: ^2.3.1
     version: 2.3.1

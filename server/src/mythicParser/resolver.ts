@@ -33,6 +33,7 @@ import { RangeLink, DocumentInfo } from "../yaml/parser/parser.js";
 import { CustomRange, r } from "../utils/positionsAndRanges.js";
 import { Optional, stripIndentation } from "tick-ts-utils";
 import { Highlight } from "../colors.js";
+import { todo } from "../utils/utils.js";
 
 export class Resolver extends ExprVisitor<void> {
     #source: string = "";
@@ -370,7 +371,9 @@ export class Resolver extends ExprVisitor<void> {
             }
         }
     }
-    override visitGenericStringExpr(genericString: GenericStringExpr): void {}
+    override visitGenericStringExpr(_: GenericStringExpr): void {
+        todo();
+    }
     #addError(message: string, expr: Expr, range = expr.range) {
         this.#errors.push(new ResolverError(this.#source, message, expr, range, this.#currentSkill));
     }
