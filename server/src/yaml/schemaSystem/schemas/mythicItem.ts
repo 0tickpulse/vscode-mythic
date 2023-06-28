@@ -96,7 +96,6 @@ export const mythicItemSchema: YamlSchema = new YMap(
         Options: {
             schema: new YObj({
                 Color: {
-                    // custom schema
                     schema: new YItemColor(),
                     required: false,
                     description: "The color of the item.",

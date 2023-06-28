@@ -5,11 +5,16 @@
 ### Added
 
 - Partial schema for mob configurations
+- Partial schema for item configurations
+- Color picker for item options
 
 ### Changed
 
 - Dramatic performance improvements
   - Technical details: A large proportion of performance overhead originates from conversion between various position formats (offset and line/column). Each conversion splits the string into an array of lines, which is very expensive. This has been fixed by caching the line lengths of each file.
+- Code organization
+  - All schemas have been moved to individual files
+  - Yaml schema classes have their names shortened (e.g. `YamlSchemaString` -> `YString`)
 
 ## 1.9.2 - 2023-06-27
 

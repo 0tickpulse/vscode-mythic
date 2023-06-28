@@ -112,7 +112,7 @@ export function scheduleParse() {
             FULL_PARSE_QUEUE.clear();
             console.log(`[parser] Finished parsing! Requesting semantic token refresh...`);
             server.connection.languages.semanticTokens.refresh();
-        }, 1000),
+        }, 300),
     );
 }
 
