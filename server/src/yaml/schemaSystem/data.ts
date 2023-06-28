@@ -31,13 +31,13 @@ function addPath(path: string, schema: YSchema) {
 }
 
 // SKILLS
-addPath("**/plugins/MythicMobs/Skills/*.{yml,yaml,mythic}", mythicSkillSchema);
-addPath("**/plugins/MythicMobs/Packs/*/Skills/*.{yml,yaml,mythic}", mythicSkillSchema);
+addPath("**/plugins/MythicMobs/Skills/*.{yml,yaml}", mythicSkillSchema);
+addPath("**/plugins/MythicMobs/Packs/*/Skills/*.{yml,yaml}", mythicSkillSchema);
 
 // MOBS
-addPath("**/plugins/MythicMobs/Mobs/*.{yml,yaml,mythic}", mythicMobSchema);
-addPath("**/plugins/MythicMobs/Packs/*/Mobs/*.{yml,yaml,mythic}", mythicMobSchema);
+addPath("**/plugins/MythicMobs/Mobs/*.{yml,yaml}", mythicMobSchema);
+addPath("**/plugins/MythicMobs/Packs/*/Mobs/*.{yml,yaml}", mythicMobSchema);
 
 // ITEMS
-addPath("**/plugins/MythicMobs/Items/*.{yml,yaml,mythic}", mythicItemSchema);
-addPath("**/plugins/MythicMobs/Packs/*/Items/*.{yml,yaml,mythic}", mythicItemSchema);
+addPath("**/plugins/MythicMobs/Items/*.{yml,yaml}", mythicItemSchema);
+addPath("**/plugins/MythicMobs/Packs/*/Items/*.{yml,yaml}", mythicItemSchema);
