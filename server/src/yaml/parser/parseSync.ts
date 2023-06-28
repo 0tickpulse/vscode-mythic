@@ -144,8 +144,6 @@ function preParse(doc: TextDocument) {
     );
     schema.ifPresent((schema) => {
         isLanguageModeCaused.add(uri);
-        console.log(`[parser] Requesting to set language mode for ${uri} to "mythic"`);
-        server.connection.sendRequest("language/setLanguage", { uri, language: "mythic" });
         // console.log(`Schema found for ${uri}: ${schema.get().getDescription()}`);
         // const errors = [...schema.get().preValidate(documentInfo, yamlAst.contents!), ...schema.get().validateAndModify(documentInfo, yamlAst.contents!)];
         const errors = schema.runPreValidation(documentInfo, yamlAst.contents!);

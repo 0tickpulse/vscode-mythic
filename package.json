@@ -28,31 +28,6 @@
     ],
     "main": "./dist/client.js",
     "contributes": {
-        "languages": [
-            {
-                "icon": {
-                    "light": "./assets/mythicicon_128x128.png",
-                    "dark": "./assets/mythicicon_white_128x128.png"
-                },
-                "id": "mythic",
-                "aliases": [
-                    "MythicYAML"
-                ],
-                "extensions": [
-                    ".yaml",
-                    ".yml",
-                    ".mythic"
-                ],
-                "configuration": "./language-configuration.json"
-            }
-        ],
-        "grammars": [
-            {
-                "language": "mythic",
-                "scopeName": "source.yaml",
-                "path": "./syntaxes/yaml.tmLanguage.json"
-            }
-        ],
         "commands": [
             {
                 "command": "vscode-mythic.helloWorld",

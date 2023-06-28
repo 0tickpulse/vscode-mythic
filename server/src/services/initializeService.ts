@@ -23,7 +23,7 @@ export default async (params: InitializeParams): Promise<InitializeResult> => {
                     return;
                 }
                 const uri = URI.file(file).toString();
-                const textdoc = TextDocument.create(uri, "mythicyaml", 0, await readFile(file, "utf-8"));
+                const textdoc = TextDocument.create(uri, "yaml", 0, await readFile(file, "utf-8"));
                 queuePartial(textdoc);
             }),
         );

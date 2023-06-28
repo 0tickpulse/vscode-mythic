@@ -1,5 +1,11 @@
 # Changelogs
 
+## Unreleased
+
+### Removed
+
+- The `mythicyaml` language mode is no longer needed. The extension now automatically detects MythicMobs configuration YAML files.
+
 ## 1.9.3 - 2023-06-28
 
 ### Added

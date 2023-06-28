@@ -481,7 +481,7 @@ export class YMythicSkillMap extends YMap {
         To declare a metaskill, use the following syntax:
         ` +
             `
-        \`\`\`mythicyaml
+        \`\`\`yaml
         internal_skillname:
           Cooldown: [seconds]
           OnCooldownSkill: [the metaskill to execute if this one is on cooldown]

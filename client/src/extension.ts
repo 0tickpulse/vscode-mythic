@@ -28,8 +28,8 @@ export async function activate(context: ExtensionContext) {
         documentSelector: [
             {
                 scheme: "file",
-                language: "mythic",
-            },
+                language: "yaml",
+            }
         ],
     };
 
@@ -42,23 +42,6 @@ export async function activate(context: ExtensionContext) {
 
     client = new LanguageClient("mythicLanguageServer", "Mythic Language Server", serverOptions, clientOptions);
     const changedLanguage = new Set<string>();
-    client.onRequest("language/setLanguage", async ({ uri, language }: SetLanguageParams) => {
-        const path = URI.parse(uri).fsPath;
-        const doc = await workspace.openTextDocument(path);
-        if (doc.languageId !== language && !changedLanguage.has(uri)) {
-            log(`Setting language for ${uri} to ${language}`);
-            changedLanguage.add(uri);
-            languages.setTextDocumentLanguage(doc, language);
-        }
-    });
-    client.onRequest("fullParse/start", () => {
-        log("Full workspace parse started!");
-        fullParseStartStatus(status);
-    });
-    client.onRequest("fullParse/end", () => {
-        log("Full workspace parse ended!");
-        fullParseDefaultStatus(status);
-    });
     context.subscriptions.push(status);
 
     client.start();
