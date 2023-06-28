@@ -6,6 +6,7 @@ import { CustomRange } from "../../../utils/positionsAndRanges.js";
 import { DocumentInfo } from "../../parser/documentInfo.js";
 import materials from "../bigData/materials.js";
 import { YMap, YObj, YUnion, YString, YArr, YNum, SchemaValidationError, YamlSchema } from "../schemaTypes.js";
+import { mdSeeAlso } from "../../../utils/utils.js";
 
 class YItemColor extends YString {
     constructor() {
@@ -28,25 +29,28 @@ class YItemColor extends YString {
             ];
         }
         const parsedColors = [];
+        const colorTypes = ["red", "green", "blue"];
         let offset = 0;
         for (const color of colors) {
             const num = parseInt(color);
-            if (isNaN(num) || num < 0 || num > 255) {
-                return [
-                    new SchemaValidationError(
-                        this,
-                        "Invalid color. Must be in the format of `R,G,B` where `R`, `G`, and `B` are integers between 0 and 255.",
-                        doc,
-                        value,
-                    ),
-                ];
-            }
             const rangeStart = value.range![0] + offset;
             const rangeEnd = rangeStart + color.length;
             const range = CustomRange.fromYamlRange(doc.lineLengths, [rangeStart, rangeEnd, rangeEnd]);
             offset += color.length + 1; // +1 for the comma
             parsedColors.push(num);
+            const colorType = colorTypes.shift();
+            if (isNaN(num)) {
+                errors.push(new SchemaValidationError(this, `Invalid ${colorType} value. Must be an integer.`, doc, value, range));
+                continue;
+            }
+            if (num < 0 || num > 255) {
+                errors.push(new SchemaValidationError(this, `Invalid ${colorType} value. Must be between 0 and 255.`, doc, value, range));
+                // no continue here because we still want to add the highlight
+            }
             doc.addHighlight(new Highlight(range, SemanticTokenTypes.number));
+        }
+        if (errors.length > 0) {
+            return errors;
         }
         const [red, green, blue] = parsedColors;
         const parsedColor = new Color(red, green, blue);
@@ -66,32 +70,32 @@ export const mythicItemSchema: YamlSchema = new YMap(
         Id: {
             schema: YUnion.nonCaseSensitiveLiterals(...materials).setName("material_type"),
             required: true,
-            description: "The material type of the item.",
+            description: "The material type of the item." + mdSeeAlso("Items/Items#id"),
         },
         Display: {
             schema: new YString(),
             required: false,
-            description: "The display name of the item.",
+            description: "The display name of the item." + mdSeeAlso("Items/Items#display"),
         },
         Group: {
             schema: new YString(), // TODO: Have this be generated from the ast
             required: false,
-            description: "The group of the item for the Item Browser.",
+            description: "The group of the item for the Item Browser." + mdSeeAlso("Items/Items#group"),
         },
         Lore: {
             schema: new YArr(new YString()),
             required: false,
-            description: "The lore of the item.",
+            description: "The lore of the item." + mdSeeAlso("Items/Items#lore"),
         },
         CustomModelData: {
             schema: new YNum(0, undefined, true, true, true),
             required: false,
-            description: "The custom model data of the item.",
+            description: "The custom model data of the item." + mdSeeAlso("Items/Items#custommodeldata"),
         },
         Model: {
             schema: new YNum(0, undefined, true, true, true),
             required: false,
-            description: "An alias for CustomModelData.",
+            description: "An alias for CustomModelData." + mdSeeAlso("Items/Items#custommodeldata"),
         },
         Options: {
             schema: new YObj({
@@ -102,7 +106,7 @@ export const mythicItemSchema: YamlSchema = new YMap(
                 },
             }),
             required: false,
-            description: "Some other sub-options of the item.",
+            description: "Some other sub-options of the item." + mdSeeAlso("Items/Items#options", "Items/Options"),
         },
     }),
 );

@@ -48,7 +48,7 @@ export async function activate(context: ExtensionContext) {
         if (doc.languageId !== language && !changedLanguage.has(uri)) {
             log(`Setting language for ${uri} to ${language}`);
             changedLanguage.add(uri);
-            // languages.setTextDocumentLanguage(doc, language);
+            languages.setTextDocumentLanguage(doc, language);
         }
     });
     client.onRequest("fullParse/start", () => {

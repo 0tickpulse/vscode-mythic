@@ -45,3 +45,11 @@ export function filterMap<T, U>(array: T[], filter: (value: T) => Optional<U>): 
 export function todo(message = "Implement") {
     console.warn(`Hit TODO: ${message}`);
 }
+
+export function mdLinkWiki(path: string) {
+    return `[🔗 Wiki: ${path.replace(/-/g, " ")}](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/${path})`;
+}
+
+export function mdSeeAlso(...paths: string[]) {
+    return `\n\n## See Also\n\n${paths.map((path) => `* ${mdLinkWiki(path)}`).join("\n\n")}`;
+}
