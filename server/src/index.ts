@@ -11,6 +11,7 @@ import referenceService from "./services/referenceService.js";
 import completionService from "./services/completionService.js";
 import documentColorService from "./services/documentColorService.js";
 import colorPresentationService from "./services/colorPresentationService.js";
+import completionResolveService from "./services/completionResolveService.js";
 
 process.argv.push("--node-ipc");
 
@@ -42,6 +43,7 @@ function main() {
     connection.onDefinition(definitionService);
     connection.onReferences(referenceService);
     connection.onCompletion(completionService);
+    connection.onCompletionResolve(completionResolveService);
     connection.onDocumentColor(documentColorService);
     connection.onColorPresentation(colorPresentationService);
 

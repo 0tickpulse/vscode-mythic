@@ -1,4 +1,4 @@
-import { Color } from "tick-ts-utils";
+import { Color, Optional } from "tick-ts-utils";
 import { SemanticTokenTypes } from "vscode-languageserver";
 import { Node, isScalar } from "yaml";
 import { Highlight, ColorHint } from "../../../colors.js";
@@ -70,10 +70,23 @@ class YItemColor extends YString {
         return [];
     }
 }
+
+const materialTypesSchema = YUnion.nonCaseSensitiveLiterals(...materials).setName("material_type");
+materialTypesSchema.items.forEach((item) => {
+    const stringSchema = item as YString; // this is safe because we know that the items are all YStrings
+    stringSchema.completionItem.ifPresent((item) => {
+        // this will directly modify the completion item in the schema, objects are passed by reference
+        item.documentation = {
+            kind: "markdown",
+            value: `![Item ${item.label}](https://assets.mcasset.cloud/1.20.1/assets/minecraft/textures/item/${item.label}.png)`,
+        };
+    });
+});
+
 export const mythicItemSchema: YamlSchema = new YMap(
     new YObj({
         Id: {
-            schema: YUnion.nonCaseSensitiveLiterals(...materials).setName("material_type"),
+            schema: materialTypesSchema,
             required: true,
             description: "The material type of the item." + mdSeeAlso("Items/Items#id"),
         },

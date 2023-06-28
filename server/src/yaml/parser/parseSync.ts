@@ -5,7 +5,7 @@ import { parseDocument } from "yaml";
 import { globalData } from "../../documentManager.js";
 import { server } from "../../index.js";
 import { isLanguageModeCaused } from "../../services/didChangeContentService.js";
-import { } from "../../services/semanticTokensService.js";
+import {} from "../../services/semanticTokensService.js";
 import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import { PATH_MAP } from "../schemaSystem/data.js";
 import { DocumentInfo } from "./documentInfo.js";
@@ -116,7 +116,7 @@ export function scheduleParse() {
     );
 }
 
-function preParse(doc: TextDocument) {
+export function preParse(doc: TextDocument) {
     const { uri } = doc;
     const source = doc.getText();
     const documentInfo = new DocumentInfo(doc, parseDocument(source));
@@ -161,7 +161,7 @@ function preParse(doc: TextDocument) {
     return documentInfo;
 }
 
-function postParse(doc: DocumentInfo) {
+export function postParse(doc: DocumentInfo) {
     doc.schema.ifPresent((schema) => {
         const errors = schema.runPostValidation(doc, doc.yamlAst.contents!);
         errors.forEach((error) => {
@@ -175,4 +175,11 @@ function postParse(doc: DocumentInfo) {
         });
     });
     return doc;
+}
+
+export function autoComplete(doc: DocumentInfo, cursor: CustomPosition) {
+    doc.autoCompletions = []; // clear completions
+    doc.schema.ifPresent((schema) => {
+        schema.autoComplete(doc, doc.yamlAst.contents!, cursor);
+    });
 }

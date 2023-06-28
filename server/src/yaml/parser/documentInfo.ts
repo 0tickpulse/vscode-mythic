@@ -1,5 +1,5 @@
 import { Optional } from "tick-ts-utils";
-import { Diagnostic, Hover } from "vscode-languageserver";
+import { CompletionItem, Diagnostic, Hover } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Document } from "yaml";
 import { ColorHint, Highlight } from "../../colors.js";
@@ -33,6 +33,7 @@ export class DocumentInfo {
     lineLengths: number[];
     #dependencies: Set<string> = new Set();
     #dependents: Set<string> = new Set();
+    autoCompletions: CompletionItem[] = [];
     constructor(public base: TextDocument, public yamlAst: Document, hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
         this.source = base.getText();
         this.hovers = hovers ?? [];

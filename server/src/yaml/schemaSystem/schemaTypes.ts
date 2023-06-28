@@ -1,14 +1,16 @@
 import { Optional, stripIndentation } from "tick-ts-utils";
-import { Node, isCollection, isMap, isScalar } from "yaml";
+import { Node, Scalar, isCollection, isMap, isScalar } from "yaml";
 import { getAst } from "../../mythicParser/main.js";
 import { Resolver } from "../../mythicParser/resolver.js";
-import { CustomRange } from "../../utils/positionsAndRanges.js";
+import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import { filterMap, getClosestTo } from "../../utils/utils.js";
 import { DocumentInfo } from "../parser/documentInfo.js";
 import { CachedMythicSkill } from "../../mythicModels.js";
 import { globalData } from "../../documentManager.js";
-import { Hover, SemanticTokenTypes } from "vscode-languageserver";
+import { CompletionItem, CompletionItemKind, Hover, SemanticTokenTypes } from "vscode-languageserver";
 import { Highlight } from "../../colors.js";
+import { server } from "../../index.js";
+import { cursorValidInRange, scalarValue } from "./schemaUtils.js";
 
 export class SchemaValidationError {
     message: string;
@@ -16,10 +18,10 @@ export class SchemaValidationError {
         public expectedType: YamlSchema,
         message: string,
         public doc: DocumentInfo,
-        public node: Node,
+        public node: Node | null,
         public range = node !== null ? CustomRange.fromYamlRange(doc.lineLengths, node.range!) : null,
     ) {
-        this.message = message; // TODO - Format the message better
+        this.message = message + `\n\nGot: ${node?.toString()}`; // TODO - Format the message better
     }
 }
 
@@ -83,6 +85,9 @@ export class YamlSchema {
         }
         return errors;
     }
+    autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
+        return;
+    }
     protected postValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         return [];
     }
@@ -108,9 +113,15 @@ export class YamlSchema {
 
 export class YString extends YamlSchema {
     literal: Optional<string>;
+    completionItem: Optional<CompletionItem>;
     constructor(literal?: string, public caseSensitive = true) {
         super();
         this.literal = Optional.of(literal);
+        this.completionItem = this.literal.map((literal) => ({
+            label: literal,
+            kind: CompletionItemKind.Value,
+            insertText: literal,
+        }));
     }
     setLiteral(literal: string) {
         this.literal = Optional.of(literal);
@@ -123,11 +134,28 @@ export class YString extends YamlSchema {
     override getDescription() {
         return this.literal.map((literal) => `"${literal}"`).otherwise("a string");
     }
+    override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
+        console.log(`[YString] ${this.literal}`);
+        if (!isScalar(value)) {
+            return;
+        }
+        const range = CustomRange.fromYamlRange(doc.lineLengths, value.range!);
+        if (cursor !== undefined && cursorValidInRange(doc, range, cursor) && this.completionItem.isPresent()) {
+            // const start = scalarValue(value);
+            // const isValid = start.trim() === "" || this.literal.get().toLowerCase().startsWith(start.toLowerCase());
+            // console.table({
+            //     start,
+            //     literal: this.literal.get(),
+            //     isValid,
+            // });
+            doc.autoCompletions.push(this.completionItem.get());
+        }
+    }
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (!isScalar(value)) {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
         }
-        if (this.literal.isPresent() && !this.#check(value.toString(), this.literal.get())) {
+        if (this.literal.isPresent() && !this.#check(scalarValue(value), this.literal.get())) {
             return [new SchemaValidationError(this, `Expected value "${this.literal.get()}"!\nRaw type: ${this.rawTypeText}`, doc, value)];
         }
         return [];
@@ -228,7 +256,7 @@ export class YBool extends YamlSchema {
         if (!isScalar(value)) {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
         }
-        if (value.toString() !== "true" && value.toString() !== "false") {
+        if (scalarValue(value) !== "true" && scalarValue(value) !== "false") {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
         }
         return [];
@@ -276,6 +304,12 @@ export class YArr extends YamlSchema {
             });
         return errors;
     }
+    override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
+        isCollection(value) &&
+            value.items.forEach((item) => {
+                this.itemSchema.autoComplete(doc, item as Node, cursor);
+            });
+    }
     get rawTypeText() {
         return `array(${this.itemSchema.typeText})`;
     }
@@ -294,12 +328,7 @@ export class YTuple extends YamlSchema {
         // check length
         if (value.items.length !== this.itemSchema.length) {
             return [
-                new SchemaValidationError(
-                    this,
-                    `Expected a tuple with ${this.itemSchema.length} items, but got ${value.items.length}!`,
-                    doc,
-                    value,
-                ),
+                new SchemaValidationError(this, `Expected a tuple with ${this.itemSchema.length} items, but got ${value.items.length}!`, doc, value),
             ];
         }
         // check items
@@ -314,6 +343,12 @@ export class YTuple extends YamlSchema {
     setItemSchema(itemSchema: YamlSchema[]) {
         this.itemSchema = itemSchema;
         return this;
+    }
+    override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
+        isCollection(value) &&
+            value.items.forEach((item, index) => {
+                this.itemSchema[index].autoComplete(doc, item as Node, cursor);
+            });
     }
     get rawTypeText() {
         return `tuple(${this.itemSchema.map((schema) => schema.typeText).join(", ")})`;
@@ -363,10 +398,8 @@ export class YObj extends YamlSchema {
                 return (i.key as any).value === key;
             }) as { key: Node; value: Node } | undefined;
             if (item) {
-                if (item.value !== null) {
-                    const error = schema.runPreValidation(doc, item.value);
-                    errors.push(...error);
-                }
+                const error = schema.runPreValidation(doc, item.value);
+                errors.push(...error);
                 if (item.key !== null && description) {
                     const range = item.key.range;
                     if (range) {
@@ -374,7 +407,7 @@ export class YObj extends YamlSchema {
                         customRange &&
                             doc.addHover({
                                 range: customRange,
-                                contents: stripIndentation`Property \`${key}\`: \`${schema.typeText}\`
+                                contents: stripIndentation`Property \`${this.name ?? ""}${key}\`: \`${schema.typeText}\`
 
                                 ${description}`,
                             });
@@ -390,7 +423,7 @@ export class YObj extends YamlSchema {
             if (item.key === null) {
                 continue;
             }
-            const key = (item.key as any).value;
+            const key = (item.key as Scalar).toString();
             const range = (item.key as Node).range;
             const customRange = range ? CustomRange.fromYamlRange(doc.lineLengths, range) : undefined;
             if (!this.properties[key]) {
@@ -423,6 +456,23 @@ export class YObj extends YamlSchema {
             }
         }
         return errors;
+    }
+    override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
+        if (!isMap(value)) {
+            return;
+        }
+        const { items } = value;
+        for (const item of items) {
+            if (item.key === null) {
+                continue;
+            }
+            const key = (item.key as any).value;
+            const schema = this.properties[key]?.schema;
+            if (!schema) {
+                continue;
+            }
+            schema.autoComplete(doc, item.value as Node, cursor);
+        }
     }
     get rawTypeText() {
         return `object(${Object.entries(this.properties)
@@ -465,6 +515,12 @@ export class YMap extends YamlSchema {
                 errors.push(...innerErrors);
             });
         return errors;
+    }
+    override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
+        isMap(value) &&
+            value.items.forEach((item) => {
+                this.values.autoComplete(doc, item.value as Node, cursor);
+            });
     }
     get rawTypeText() {
         return `map(${this.values.typeText})`;
@@ -552,6 +608,12 @@ export class YMythicSkillMap extends YMap {
         }
         return errors;
     }
+    override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
+        isMap(value) &&
+            value.items.forEach((item) => {
+                this.values.autoComplete(doc, item.value as Node, cursor);
+            });
+    }
     get rawTypeText() {
         return `map(${this.values.typeText})`;
     }
@@ -588,10 +650,15 @@ export class YUnion extends YamlSchema {
             }
             return Optional.empty<string>();
         });
-        const closest = isScalar(value) ? getClosestTo(value.toString(), literals) : undefined;
+        const closest = isScalar(value) ? getClosestTo(scalarValue(value), literals) : undefined;
         return [
             new SchemaValidationError(this, `Expected ${this.typeText}!${closest !== undefined ? `\nDid you mean ${closest}?` : ""}`, doc, value),
         ];
+    }
+    override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
+        for (const item of this.items) {
+            item.autoComplete(doc, value, cursor);
+        }
     }
     get rawTypeText() {
         return `${this.items.map((item) => item.typeText).join(" | ")}`;
