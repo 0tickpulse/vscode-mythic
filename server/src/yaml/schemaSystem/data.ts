@@ -1,21 +1,7 @@
 import picomatch from "picomatch";
 import {
-    YamlSchema as YSchema,
-     YString,
-     YArr,
-     YMap,
-     YBool,
-     YMythicCondition,
-     YMythicSkill,
-     YNum,
-     YObj,
-     YUnion,
-    YMythicSkillMap,
+    YamlSchema as YSchema
 } from "./schemaTypes.js";
-import materials from "./bigData/materials.js";
-import { isScalar } from "yaml";
-import { todo } from "../../utils/utils.js";
-import { r } from "../../utils/positionsAndRanges.js";
 import { mythicItemSchema } from "./schemas/mythicItem.js";
 import { mythicMobSchema } from "./schemas/mythicMob.js";
 import { mythicSkillSchema } from "./schemas/mythicSkill.js";
