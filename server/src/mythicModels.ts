@@ -1,5 +1,5 @@
 import { Node } from "yaml";
-import { DocumentInfo } from "./yaml/parser/parser.js";
+import { DocumentInfo } from "./yaml/parser/documentInfo.js";
 import { CustomRange } from "./utils/positionsAndRanges.js";
 
 /**

@@ -1,5 +1,5 @@
 import { Hover } from "vscode-languageserver";
-import { RangeLink, DocumentInfo } from "../yaml/parser/parser.js";
+import { RangeLink, DocumentInfo } from "../yaml/parser/documentInfo.js";
 import { CustomRange } from "../utils/positionsAndRanges.js";
 
 export type MythicHolderType = "mechanic" | "condition" | "targeter";

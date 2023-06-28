@@ -4,9 +4,11 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { parseDocument } from "yaml";
 import { globalData } from "../../documentManager.js";
 import { server } from "../../index.js";
+import { isLanguageModeCaused } from "../../services/didChangeContentService.js";
+import { } from "../../services/semanticTokensService.js";
 import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import { PATH_MAP } from "../schemaSystem/data.js";
-import { DocumentInfo } from "./parser.js";
+import { DocumentInfo } from "./documentInfo.js";
 
 class DocumentQueue {
     #items: TextDocument[] = [];
@@ -32,11 +34,23 @@ class DocumentQueue {
     }
 }
 
-export const PARSE_QUEUE = new DocumentQueue();
-export let scheduledParse: Optional<NodeJS.Timeout> = Optional.empty();
-export function queueDocumentForParse(doc: TextDocument) {
-    PARSE_QUEUE.add(doc);
-    console.log(`[parseSync] Queued ${doc.uri} for parsing`);
+export const PARTIAL_PARSE_QUEUE = new DocumentQueue();
+export const FULL_PARSE_QUEUE = new DocumentQueue();
+let scheduledParse: Optional<NodeJS.Timeout> = Optional.empty();
+export function queuePartial(doc: TextDocument) {
+    PARTIAL_PARSE_QUEUE.add(doc);
+    console.log(`[parser] Queued ${doc.uri} for partial parsing`);
+    scheduleParse();
+}
+/**
+ * Queues a document for full parsing.
+ * This will also add document to the partial parse queue.
+ *
+ * @param doc The document to queue for full parsing.
+ */
+export function queueFull(doc: TextDocument) {
+    FULL_PARSE_QUEUE.add(doc);
+    console.log(`[parser] Queued ${doc.uri} for full parsing`);
     scheduleParse();
 }
 /**
@@ -55,31 +69,48 @@ export function onFlushDoc(procedure: (doc: TextDocument) => void) {
 }
 export function scheduleParse() {
     scheduledParse.ifPresent(clearTimeout);
+    // console.log(stripIndentation`[parser] Cleared parsing timeout and created a new one!
+    // ${PARTIAL_PARSE_QUEUE.size} documents queued for partial parsing
+    // ${FULL_PARSE_QUEUE.size} documents queued for full parsing
+    // `);
     scheduledParse = Optional.of(
         setTimeout(() => {
-            if (PARSE_QUEUE.size === 0) {
+            if (PARTIAL_PARSE_QUEUE.size === 0 && FULL_PARSE_QUEUE.size === 0) {
                 return;
             }
-            console.log(`[parseSync] Parsing ${PARSE_QUEUE.size} documents`);
+            console.log(`[parser] Parsing ${PARTIAL_PARSE_QUEUE.size} documents partially and ${FULL_PARSE_QUEUE.size} documents fully.`);
             const diagnostics = new Map<string, Diagnostic[]>();
             flushProcedures.forEach((procedure) => procedure());
-            PARSE_QUEUE.forEach((doc) => {
+            const pre = (doc: TextDocument) => {
+                console.log(`[parser] Preparsing ${doc.uri}`);
+                const start = Date.now();
                 const documentInfo = preParse(doc);
                 globalData.documents.set(documentInfo);
-                console.log(`[parseSync] Preparsed ${doc.uri} (${documentInfo.errors.length} errors)`);
-            });
-            PARSE_QUEUE.forEach((doc) => {
-                const documentInfo = postParse(globalData.documents.getDocument(doc.uri)!); // non-null assertion because we just set it in the previous closure
-                globalData.documents.set(documentInfo);
-                console.log(`[parseSync] Postparsed ${doc.uri} (${documentInfo.errors.length} errors)`);
+                const duration = Date.now() - start;
+                console.log(`[parser] Preparsed ${doc.uri} (${documentInfo.errors.length} errors) in ${duration}ms`);
                 diagnostics.set(doc.uri, documentInfo.errors);
-            });
+            };
+            const post = (doc: TextDocument) => {
+                console.log(`[parser] Postparsing ${doc.uri}`);
+                const start = Date.now();
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we just set it in the previous closure
+                const documentInfo = postParse(globalData.documents.getDocument(doc.uri)!);
+                globalData.documents.set(documentInfo);
+                const duration = Date.now() - start;
+                console.log(`[parser] Postparsed ${doc.uri} (${documentInfo.errors.length} errors) in ${duration}ms`);
+                diagnostics.set(doc.uri, documentInfo.errors);
+            };
+            PARTIAL_PARSE_QUEUE.forEach(pre);
+            FULL_PARSE_QUEUE.forEach(pre);
+            FULL_PARSE_QUEUE.forEach(post);
             // clear diagnostics
             diagnostics.forEach((diagnostics, uri) => {
                 server.connection.sendDiagnostics({ uri, diagnostics });
-                console.log(`[parseSync] Sent ${diagnostics.length} diagnostics for ${uri}`);
+                console.log(`[parser] Sent ${diagnostics.length} diagnostics for ${uri}`);
             });
-            PARSE_QUEUE.clear();
+            PARTIAL_PARSE_QUEUE.clear();
+            FULL_PARSE_QUEUE.clear();
+            console.log(`[parser] Finished parsing! Requesting semantic token refresh...`);
             server.connection.languages.semanticTokens.refresh();
         }, 1000),
     );
@@ -87,11 +118,11 @@ export function scheduleParse() {
 
 function preParse(doc: TextDocument) {
     const { uri } = doc;
-    console.time(`[parseSync] preParse ${uri}`);
     const source = doc.getText();
     const documentInfo = new DocumentInfo(doc, parseDocument(source));
     const { yamlAst } = documentInfo;
     const { contents } = yamlAst;
+    const lineLengths = source.split("\n").map((line) => line.length);
     if (contents === null) {
         return documentInfo;
     }
@@ -106,16 +137,18 @@ function preParse(doc: TextDocument) {
     documentInfo.yamlAst.errors.forEach((error) =>
         documentInfo.addError({
             message: error.message,
-            range: new CustomRange(CustomPosition.fromOffset(source, error.pos[0]), CustomPosition.fromOffset(source, error.pos[1])),
+            range: new CustomRange(CustomPosition.fromOffset(lineLengths, error.pos[0]), CustomPosition.fromOffset(lineLengths, error.pos[1])),
             severity: 1,
             source: "Mythic Language Server",
         }),
     );
     schema.ifPresent((schema) => {
+        isLanguageModeCaused.add(uri);
+        console.log(`[parser] Requesting to set language mode for ${uri} to "mythic"`);
         server.connection.sendRequest("language/setLanguage", { uri, language: "mythic" });
         // console.log(`Schema found for ${uri}: ${schema.get().getDescription()}`);
         // const errors = [...schema.get().preValidate(documentInfo, yamlAst.contents!), ...schema.get().validateAndModify(documentInfo, yamlAst.contents!)];
-        const errors = schema.preValidate(documentInfo, yamlAst.contents!);
+        const errors = schema.runPreValidation(documentInfo, yamlAst.contents!);
         errors.forEach((error) => {
             error.range !== null &&
                 documentInfo.addError({
@@ -126,15 +159,13 @@ function preParse(doc: TextDocument) {
                 });
         });
     });
-    console.timeEnd(`[parseSync] preParse ${uri}`);
 
     return documentInfo;
 }
 
 function postParse(doc: DocumentInfo) {
-    console.time(`[parseSync] postParse ${doc.base.uri}`);
     doc.schema.ifPresent((schema) => {
-        const errors = schema.postValidate(doc, doc.yamlAst.contents!);
+        const errors = schema.runPostValidation(doc, doc.yamlAst.contents!);
         errors.forEach((error) => {
             error.range !== null &&
                 doc.addError({
@@ -145,6 +176,5 @@ function postParse(doc: DocumentInfo) {
                 });
         });
     });
-    console.timeEnd(`[parseSync] postParse ${doc.base.uri}`);
     return doc;
 }

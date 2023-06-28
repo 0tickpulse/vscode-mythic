@@ -1,6 +1,6 @@
 import { TextDocuments } from "vscode-languageserver/node.js";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { DocumentInfo } from "./yaml/parser/parser.js";
+import { DocumentInfo } from "./yaml/parser/documentInfo.js";
 import { CachedMythicSkill } from "./mythicModels.js";
 
 export const FILE_EXTENSIONS = [".yml", ".yaml", ".mythic"];

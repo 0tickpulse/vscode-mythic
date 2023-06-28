@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 
 import { join } from "path";
-import { ExtensionContext, languages, workspace } from "vscode";
+import { ExtensionContext, StatusBarItem, languages, window, workspace } from "vscode";
 import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node.js";
 import { URI } from "vscode-uri";
 
@@ -36,17 +36,41 @@ export async function activate(context: ExtensionContext) {
     // log the command that is being run
     log(`Starting server with command: ${serverOptions.run?.module}`);
 
+    const status = window.createStatusBarItem();
+    fullParseDefaultStatus(status);
+    status.show();
+
     client = new LanguageClient("mythicLanguageServer", "Mythic Language Server", serverOptions, clientOptions);
+    const changedLanguage = new Set<string>();
+    client.onRequest("language/setLanguage", async ({ uri, language }: SetLanguageParams) => {
+        const path = URI.parse(uri).fsPath;
+        const doc = await workspace.openTextDocument(path);
+        if (doc.languageId !== language && !changedLanguage.has(uri)) {
+            log(`Setting language for ${uri} to ${language}`);
+            changedLanguage.add(uri);
+            // languages.setTextDocumentLanguage(doc, language);
+        }
+    });
+    client.onRequest("fullParse/start", () => {
+        log("Full workspace parse started!");
+        fullParseStartStatus(status);
+    });
+    client.onRequest("fullParse/end", () => {
+        log("Full workspace parse ended!");
+        fullParseDefaultStatus(status);
+    });
+    context.subscriptions.push(status);
 
     client.start();
     log("Server started!");
+}
 
-    client.onRequest("language/setLanguage", async ({ uri, language }: SetLanguageParams) => {
-        log(`Setting language for ${uri} to ${language}`);
-        const path = URI.parse(uri).fsPath;
-        const doc = await workspace.openTextDocument(path);
-        languages.setTextDocumentLanguage(doc, language);
-    });
+function fullParseStartStatus(status: StatusBarItem) {
+    status.text = "MM: Full workspace parse...";
+}
+
+function fullParseDefaultStatus(status: StatusBarItem) {
+    status.text = "Mythic Language Server";
 }
 
 type SetLanguageParams = {

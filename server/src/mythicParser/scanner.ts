@@ -40,6 +40,7 @@ function maxLength(values: string[]) {
 
 export class MythicToken {
     range: CustomRange;
+    lineLengths: number[];
     constructor(
         readonly source: string,
         readonly type: MythicTokenType,
@@ -49,7 +50,8 @@ export class MythicToken {
         readonly start: number,
         readonly current: number,
     ) {
-        this.range = r(CustomPosition.fromOffset(this.source, this.start), CustomPosition.fromOffset(this.source, this.current));
+        this.lineLengths = this.source.split("\n").map((line) => line.length);
+        this.range = r(CustomPosition.fromOffset(this.lineLengths, this.start), CustomPosition.fromOffset(this.lineLengths, this.current));
     }
 
     toString() {
@@ -61,7 +63,7 @@ export class MythicToken {
     }
 
     getLine(offset = 0) {
-        return CustomPosition.fromOffset(this.source, this.current + offset).line + 1;
+        return CustomPosition.fromOffset(this.lineLengths, this.current + offset).line + 1;
     }
 }
 
@@ -99,8 +101,8 @@ export class MythicScanner {
         ".": (scanner: MythicScanner) => scanner.#addToken("Dot"),
         "%": (scanner: MythicScanner) => scanner.#addToken("Percent"),
         " ": (scanner: MythicScanner) => scanner.#addToken("Space"),
-        "\r": () => {},
-        "\t": () => {},
+        "\r": () => { /* nothing */ },
+        "\t": () => { /* nothing */ },
         "\n": (scanner: MythicScanner) => scanner.#line++,
         '"': (scanner: MythicScanner) => scanner.#string(),
     };

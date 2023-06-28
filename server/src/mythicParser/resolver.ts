@@ -29,14 +29,15 @@ import {
 } from "./parserExpressions.js";
 import { MythicToken } from "./scanner.js";
 import { Hover, SemanticTokenTypes } from "vscode-languageserver";
-import { RangeLink, DocumentInfo } from "../yaml/parser/parser.js";
+import { RangeLink, DocumentInfo } from "../yaml/parser/documentInfo.js";
 import { CustomRange, r } from "../utils/positionsAndRanges.js";
 import { Optional, stripIndentation } from "tick-ts-utils";
 import { Highlight } from "../colors.js";
 import { todo } from "../utils/utils.js";
 
 export class Resolver extends ExprVisitor<void> {
-    #source: string = "";
+    #source = "";
+    #doc?: DocumentInfo;
     #hovers: Hover[] = [];
     #errors: ResolverError[] = [];
     #gotoDefinitions: RangeLink[] = [];
@@ -52,14 +53,14 @@ export class Resolver extends ExprVisitor<void> {
         this.#source = expr.parser.result.source;
     }
     resolveWithDoc(doc: DocumentInfo, initialOffset: number) {
-        const sourceText = doc.source;
         this.#hovers = [];
         this.#errors = [];
         this.#characters = new Map();
         this.#gotoDefinitions = [];
+        this.#doc = doc;
         this.resolve();
         const hoverRanges = CustomRange.addMultipleOffsets(
-            sourceText,
+            doc.lineLengths,
             this.#hovers.map((hover) => r(hover.range!)),
             initialOffset,
         );
@@ -67,19 +68,19 @@ export class Resolver extends ExprVisitor<void> {
             doc.addHover({ ...hover, range: hoverRanges.shift()! });
         });
         const errorRanges = CustomRange.addMultipleOffsets(
-            sourceText,
+            doc.lineLengths,
             this.#errors.map((error) => r(error.range)),
             initialOffset,
         );
         this.#errors.forEach((error) => {
             doc.addError({ ...error.toDiagnostic(), range: errorRanges.shift()! });
         });
-        const characterRanges = CustomRange.addMultipleOffsets(sourceText, Array.from(this.#characters.keys()), initialOffset);
+        const characterRanges = CustomRange.addMultipleOffsets(doc.lineLengths, Array.from(this.#characters.keys()), initialOffset);
         this.#characters.forEach((color, range) => {
             doc.addHighlight(new Highlight(characterRanges.shift()!, color));
         });
         const defRanges = CustomRange.addMultipleOffsets(
-            sourceText,
+            doc.lineLengths,
             this.#gotoDefinitions.map((def) => def.fromRange),
             initialOffset,
         );
@@ -152,6 +153,7 @@ export class Resolver extends ExprVisitor<void> {
                 });
                 if (data.definition) {
                     this.#gotoDefinitions.push(new RangeLink(mechanic.getNameRange(), data.definition.range, data.definition.doc));
+                    this.#doc?.addDependency(data.definition.doc);
                 }
             })
             .map((d) => d.fields)

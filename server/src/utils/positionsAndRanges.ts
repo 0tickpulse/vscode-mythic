@@ -5,13 +5,13 @@ import { Range as YamlRange } from "yaml";
 
 export class CustomPosition implements Comparable<CustomPosition> {
     constructor(public line: number, public character: number) {}
-    static fromOffset(source: string, offset: number) {
+    static fromOffset(lineLengths: number[], offset: number) {
         // 0 is first line
-        const lines = source.split("\n");
         let line = 0;
         let character = 0;
-        for (let i = 0; i < lines.length; i++) {
-            const lineLength = lines[i].length + 1;
+        const len = lineLengths.length;
+        for (let i = 0; i < len; i++) {
+            const lineLength = lineLengths[i] + 1;
             if (offset < lineLength) {
                 line = i;
                 character = offset;
@@ -21,11 +21,10 @@ export class CustomPosition implements Comparable<CustomPosition> {
         }
         return new CustomPosition(line, character);
     }
-    toOffset(source: string) {
-        const lines = source.split("\n");
+    toOffset(lineLengths: number[]) {
         let offset = 0;
         for (let i = 0; i < this.line; i++) {
-            offset += lines[i].length + 1;
+            offset += lineLengths[i] + 1;
         }
         offset += this.character;
         return offset;
@@ -45,8 +44,8 @@ export class CustomPosition implements Comparable<CustomPosition> {
     add(other: CustomPosition) {
         return new CustomPosition(this.line + other.line, this.character + other.character);
     }
-    addOffset(source: string, offset: number) {
-        const result = CustomPosition.fromOffset(source, this.toOffset(source) + offset);
+    addOffset(lineLengths: number[], offset: number) {
+        const result = CustomPosition.fromOffset(lineLengths, this.toOffset(lineLengths) + offset);
         return result;
     }
 
@@ -81,8 +80,9 @@ export function p(line: number | Position, character?: number) {
 
 export class CustomRange {
     constructor(public start: CustomPosition, public end: CustomPosition) {}
-    static fromYamlRange(source: string, range: YamlRange) {
-        return new CustomRange(CustomPosition.fromOffset(source, range[0]), CustomPosition.fromOffset(source, range[2]));
+    static fromYamlRange(lineLengths: number[], range: YamlRange) {
+        //         return new CustomRange(CustomPosition.fromOffset(source, range[0]), CustomPosition.fromOffset(source, range[1]));
+        return new CustomRange(CustomPosition.fromOffset(lineLengths, range[0]!), CustomPosition.fromOffset(lineLengths, range[1]!));
     }
     getFrom(source: string) {
         const lines = source.split("\n");
@@ -101,14 +101,14 @@ export class CustomRange {
     add(position: CustomPosition) {
         return new CustomRange(this.start.add(position), this.end.add(position));
     }
-    addOffsetToStart(source: string, offset: number) {
-        return new CustomRange(this.start.addOffset(source, offset), this.end);
+    addOffsetToStart(lineLengths: number[], offset: number) {
+        return new CustomRange(this.start.addOffset(lineLengths, offset), this.end);
     }
-    addOffsetToEnd(source: string, offset: number) {
-        return new CustomRange(this.start, this.end.addOffset(source, offset));
+    addOffsetToEnd(lineLengths: number[], offset: number) {
+        return new CustomRange(this.start, this.end.addOffset(lineLengths, offset));
     }
-    addOffset(source: string, offset: number) {
-        return new CustomRange(this.start.addOffset(source, offset), this.end.addOffset(source, offset));
+    addOffset(lineLengths: number[], offset: number) {
+        return new CustomRange(this.start.addOffset(lineLengths, offset), this.end.addOffset(lineLengths, offset));
     }
     toString() {
         return `Range(${this.start}, ${this.end})`;
@@ -125,13 +125,13 @@ export class CustomRange {
     /**
      * Adds offsets to multiple ranges. Faster than calling addOffset multiple times as it only splits the source once and does not use methods like toOffset which adds loops.
      */
-    static addMultipleOffsets(source: string, ranges: CustomRange[], offset: number): CustomRange[] {
-        const lines = source.split("\n");
+    static addMultipleOffsets(lineLengths: number[], ranges: CustomRange[], offset: number): CustomRange[] {
         let offsetSoFar = 0;
         let line = 0;
         let character = 0;
-        for (let i = 0; i < lines.length; i++) {
-            const lineLength = lines[i].length + 1;
+        const len = lineLengths.length;
+        for (let i = 0; i < len; i++) {
+            const lineLength = lineLengths[i] + 1;
             if (offsetSoFar + lineLength > offset) {
                 line = i;
                 character = offset - offsetSoFar;

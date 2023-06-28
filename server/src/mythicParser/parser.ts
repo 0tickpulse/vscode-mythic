@@ -353,7 +353,7 @@ export class Parser {
         return new InlineSkillExpr(this, this.#currentPosition(), leftSquareBracket, dashesAndSkills, rightSquareBracket);
     }
 
-    #genericString(end: MythicTokenType[], error: string = "Expected a string!") {
+    #genericString(end: MythicTokenType[], error = "Expected a string!") {
         this.#log("genericString");
         const start = this.#current;
         while (!this.#checkAny(...end) && !this.#isAtEnd()) {
@@ -397,7 +397,9 @@ export class Parser {
     }
 
     #consumeWhitespace() {
-        while (this.#match("Space") && !this.#isAtEnd()) {}
+        while (this.#match("Space") && !this.#isAtEnd()) {
+            // do nothing
+        }
     }
     #match(...types: MythicTokenType[]): boolean {
         for (const type of types) {
