@@ -1,12 +1,13 @@
 import { Color } from "tick-ts-utils";
 import { SemanticTokenTypes } from "vscode-languageserver";
-import { Node } from "yaml";
+import { Node, isScalar } from "yaml";
 import { Highlight, ColorHint } from "../../../colors.js";
 import { CustomRange } from "../../../utils/positionsAndRanges.js";
 import { DocumentInfo } from "../../parser/documentInfo.js";
 import materials from "../bigData/materials.js";
 import { YMap, YObj, YUnion, YString, YArr, YNum, SchemaValidationError, YamlSchema } from "../schemaTypes.js";
 import { mdSeeAlso } from "../../../utils/utils.js";
+import { getNodeValueRange } from "../schemaUtils.js";
 
 class YItemColor extends YString {
     constructor() {
@@ -14,6 +15,9 @@ class YItemColor extends YString {
     }
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const errors = super.preValidate(doc, value);
+        if (!isScalar(value)) {
+            return []; // unreachable but isScalar is a type guard
+        }
         if (errors.length > 0) {
             return errors;
         }
@@ -30,10 +34,11 @@ class YItemColor extends YString {
         }
         const parsedColors = [];
         const colorTypes = ["red", "green", "blue"];
+        const { range: nodeRange, yamlRange } = getNodeValueRange(doc, value);
         let offset = 0;
         for (const color of colors) {
             const num = parseInt(color);
-            const rangeStart = value.range![0] + offset;
+            const rangeStart = yamlRange[0] + offset;
             const rangeEnd = rangeStart + color.length;
             const range = CustomRange.fromYamlRange(doc.lineLengths, [rangeStart, rangeEnd, rangeEnd]);
             offset += color.length + 1; // +1 for the comma
