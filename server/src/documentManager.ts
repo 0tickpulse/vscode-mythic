@@ -2,6 +2,7 @@ import { TextDocuments } from "vscode-languageserver/node.js";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { DocumentInfo } from "./yaml/parser/documentInfo.js";
 import { CachedMythicSkill } from "./mythicModels.js";
+import { warn } from "./utils/logging.js";
 
 export const FILE_EXTENSIONS = [".yml", ".yaml", ".mythic"];
 
@@ -15,6 +16,10 @@ export const globalData = {
         set(doc: DocumentInfo) {
             this.list.set(doc.base.uri, doc);
         },
+        delete(uri: string) {
+            warn("documentManager", "Unregistering document", uri)
+            this.list.delete(uri);
+        }
     },
     mythic: {
         /**
@@ -40,7 +45,7 @@ export const globalData = {
         },
     },
     flush(uri: string) {
-        this.documents.list.delete(uri);
+        this.documents.delete(uri);
         this.mythic.skills.map.delete(uri);
     },
 };

@@ -1,10 +1,16 @@
-import { Comparable, flattenComparison } from "tick-ts-utils";
+import { Comparable, DeepEquals, flattenComparison } from "tick-ts-utils";
 import { Range } from "vscode-languageserver";
 import { Position } from "vscode-languageserver-textdocument";
 import { Range as YamlRange } from "yaml";
 
-export class CustomPosition implements Comparable<CustomPosition> {
+export class CustomPosition implements Comparable<CustomPosition>, DeepEquals {
     constructor(public line: number, public character: number) {}
+    equals(other: unknown): boolean {
+        if (!(other instanceof CustomPosition)) {
+            return false;
+        }
+        return this.line === other.line && this.character === other.character;
+    }
     static fromOffset(lineLengths: number[], offset: number) {
         // 0 is first line
         let line = 0;
@@ -78,11 +84,17 @@ export function p(line: number | Position, character?: number) {
     return new CustomPosition(line.line, line.character);
 }
 
-export class CustomRange {
+export class CustomRange implements DeepEquals {
     constructor(public start: CustomPosition, public end: CustomPosition) {}
     static fromYamlRange(lineLengths: number[], range: YamlRange) {
         //         return new CustomRange(CustomPosition.fromOffset(source, range[0]), CustomPosition.fromOffset(source, range[1]));
         return new CustomRange(CustomPosition.fromOffset(lineLengths, range[0]!), CustomPosition.fromOffset(lineLengths, range[1]!));
+    }
+    equals(other: unknown): boolean {
+        if (!(other instanceof CustomRange)) {
+            return false;
+        }
+        return this.start.equals(other.start) && this.end.equals(other.end);
     }
     getFrom(source: string) {
         const lines = source.split("\n");

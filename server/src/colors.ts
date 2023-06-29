@@ -2,6 +2,7 @@ import { ColorInformation, ColorPresentation, SemanticTokenTypes, TextEdit } fro
 import { CustomRange } from "./utils/positionsAndRanges.js";
 import { Color } from "tick-ts-utils";
 import { Color as VsColor } from "vscode-languageserver";
+import { dbg } from "./utils/logging.js";
 
 export const SEMANTIC_TOKEN_TYPES: SemanticTokenTypes[] = [
     SemanticTokenTypes.namespace,
@@ -40,16 +41,30 @@ export class Highlight {
 }
 
 export class ColorHint implements ColorInformation {
-    constructor(public range: CustomRange, public color: Color, public label: string, public textEdit: (newColor: VsColor) => TextEdit) {
+    color: VsColor;
+    constructor(
+        public range: CustomRange,
+        public tuColor: Color,
+        public label: string,
+        public textEdit: (newColor: Color) => TextEdit,
+        public presentationLabel: (newColor: Color) => string = () => this.label,
+    ) {
         // vscode colors are 0-1, but tick-ts-utils colors are 0-255
-        this.color.red /= 255;
-        this.color.green /= 255;
-        this.color.blue /= 255;
+        this.color = {
+            red: tuColor.red / 255,
+            green: tuColor.green / 255,
+            blue: tuColor.blue / 255,
+            alpha: 1,
+        };
     }
     applyTextEdit(newColor: VsColor): ColorPresentation {
+        const color = new Color(newColor.red * 255, newColor.green * 255, newColor.blue * 255);
         return {
-            label: this.label,
-            textEdit: this.textEdit(newColor),
-        }
+            label: this.presentationLabel(color),
+            textEdit: this.textEdit(color),
+        };
+    }
+    toString() {
+        return `ColorHint(${this.range}, ${this.tuColor.toHex()}, ${this.label})`;
     }
 }

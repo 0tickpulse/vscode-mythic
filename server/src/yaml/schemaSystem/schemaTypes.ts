@@ -10,7 +10,7 @@ import { globalData } from "../../documentManager.js";
 import { CompletionItem, CompletionItemKind, Hover, SemanticTokenTypes } from "vscode-languageserver";
 import { Highlight } from "../../colors.js";
 import { server } from "../../index.js";
-import { cursorValidInRange, getNodeValueRange, scalarValue } from "./schemaUtils.js";
+import { cursorValidInRange, getNodeValueRange, getNodeValueYamlRange, scalarValue } from "./schemaUtils.js";
 import { MythicScanner } from "../../mythicParser/scanner.js";
 import { Parser } from "../../mythicParser/parser.js";
 
@@ -157,19 +157,28 @@ export class YString extends YamlSchema {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
         const str = String(scalarValue(value));
+        if (this.literal.isPresent() && !this.#check(str, this.literal.get())) {
+            return [new SchemaValidationError(this, `Expected value "${this.literal.get()}"!`, doc, value)];
+        }
+        return [];
+    }
+    override postValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+        if (!isScalar(value)) {
+            return [];
+        }
+        const str = String(scalarValue(value));
+
         if (this.supportsPlaceholders) {
-            const range = getNodeValueRange(doc, value);
+            const range = getNodeValueYamlRange(doc, value);
             const scanner = new MythicScanner(str).scanTokens();
             const parser = new Parser(scanner);
             const ast = parser.parseMlcValue();
             ast.ifPresent((ast) => {
                 const resolver = new Resolver().setAst(ast);
-                resolver.resolveWithDoc(doc, range.yamlRange[0]);
+                resolver.resolveWithDoc(doc, range[0]);
             });
         }
-        if (this.literal.isPresent() && !this.#check(str, this.literal.get())) {
-            return [new SchemaValidationError(this, `Expected value "${this.literal.get()}"!`, doc, value)];
-        }
+
         return [];
     }
     #check(value1: string, value2: string) {

@@ -17,6 +17,20 @@ export function getNodeValueRange({ lineLengths }: DocumentInfo, { range, type }
 }
 
 /**
+ * A more performant version of getNodeValueRange that only returns the YAML range.
+ *
+ * @param param0 The document info.
+ * @param param1 The node. Must be a scalar.
+ */
+export function getNodeValueYamlRange({ lineLengths }: DocumentInfo, { range, type }: Scalar) {
+    let rangeOffset = range!;
+    if (type === "QUOTE_DOUBLE" || type === "QUOTE_SINGLE") {
+        rangeOffset = [rangeOffset[0] + 1, rangeOffset[1] - 1, rangeOffset[2]];
+    }
+    return rangeOffset;
+}
+
+/**
  * Returns true if either is true:
  * - The cursor is in the range
  * - Inbetween the range's end and the cursor is only whitespace
