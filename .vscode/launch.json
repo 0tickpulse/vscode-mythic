@@ -19,13 +19,6 @@
 				"--extensionDevelopmentPath=${workspaceRoot}",
 				"--verbose"
 			],
-			"outFiles": [
-				"${workspaceRoot}/dist/client.js"
-			],
-			"preLaunchTask": {
-				"type": "npm",
-				"script": "watch"
-			}
 		},
 		{
 			"type": "node",
@@ -33,9 +26,7 @@
 			"name": "Attach to Server",
 			"port": 6009,
 			"restart": true,
-			"outFiles": [
-				"${workspaceRoot}/dist/server.js"
-			],
+			"sourceMaps": true,
 			
 		}
 	],

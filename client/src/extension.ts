@@ -15,7 +15,7 @@ export async function activate(context: ExtensionContext) {
         Node Version: ${process.version}
         File: ${__filename}`);
     log(`Attempting to start server from '${serverModule}'...`);
-    const debugOptions: ForkOptions = { execArgv: ["--nolazy"] };
+    const debugOptions: ForkOptions = { execArgv: ["--nolazy", "--inspect=6009"] };
     const serverOptions: ServerOptions = {
         run: { module: serverModule, transport: TransportKind.ipc },
         debug: {
