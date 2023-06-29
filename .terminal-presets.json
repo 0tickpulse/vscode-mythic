@@ -1,4 +1,7 @@
 {
+    "default": {
+        "shellPath": "/bin/bash"
+    },
     "presets": [
         {
             "name": "VSCode Mythic Webpack Dev",
@@ -7,15 +10,13 @@
                     "name": "Webpack Client",
                     "icon": "package",
                     "command": "pnpm run client:webpack-dev",
-                    "color": "yellow",
-                    "shellPath": "/bin/bash"
+                    "color": "yellow"
                 },
                 {
                     "name": "Webpack Server",
                     "icon": "package",
                     "command": "pnpm run server:webpack-dev",
-                    "color": "red",
-                    "shellPath": "/bin/bash"
+                    "color": "red"
                 }
             ]
         }
