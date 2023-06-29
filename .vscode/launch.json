@@ -15,28 +15,11 @@
 			"request": "launch",
 			"name": "Launch Client",
 			"runtimeExecutable": "${execPath}",
+			"autoAttachChildProcesses": true,
 			"args": [
 				"--extensionDevelopmentPath=${workspaceRoot}",
 				"--verbose"
 			],
 		},
-		{
-			"type": "node",
-			"request": "attach",
-			"name": "Attach to Server",
-			"port": 6009,
-			"restart": true,
-			"sourceMaps": true,
-			
-		}
 	],
-	"compounds": [
-		{
-			"name": "Client + Server",
-			"configurations": [
-				"Launch Client",
-				"Attach to Server"
-			]
-		}
-	]
 }
