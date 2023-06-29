@@ -153,10 +153,10 @@ export class YString extends YamlSchema {
     }
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (!isScalar(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
         if (this.literal.isPresent() && !this.#check(scalarValue(value), this.literal.get())) {
-            return [new SchemaValidationError(this, `Expected value "${this.literal.get()}"!\nRaw type: ${this.rawTypeText}`, doc, value)];
+            return [new SchemaValidationError(this, `Expected value "${this.literal.get()}"!`, doc, value)];
         }
         return [];
     }
@@ -205,11 +205,11 @@ export class YNum extends YamlSchema {
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         const range = value.range && CustomRange.fromYamlRange(doc.lineLengths, value.range);
         if (!isScalar(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value, range)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value, range)];
         }
         const num = Number(value.value);
         if (isNaN(num)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value, range)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value, range)];
         }
         if (this.lowerBound !== undefined && (this.lowerBoundInclusive ? num < this.lowerBound : num <= this.lowerBound)) {
             return [
@@ -234,7 +234,7 @@ export class YNum extends YamlSchema {
             ];
         }
         if (this.isInteger && !Number.isInteger(num)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value, range)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value, range)];
         }
         return [];
     }
@@ -254,10 +254,10 @@ export class YBool extends YamlSchema {
     }
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (!isScalar(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
         if (scalarValue(value) !== "true" && scalarValue(value) !== "false") {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
         return [];
     }
@@ -282,7 +282,7 @@ export class YArr extends YamlSchema {
         }
 
         if (!isCollection(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
 
         const errors: SchemaValidationError[] = [];
@@ -323,7 +323,7 @@ export class YTuple extends YamlSchema {
     }
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (!isCollection(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
         // check length
         if (value.items.length !== this.itemSchema.length) {
@@ -386,7 +386,7 @@ export class YObj extends YamlSchema {
     }
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (!isMap(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
 
         const { items } = value;
@@ -504,7 +504,7 @@ export class YMap extends YamlSchema {
     }
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (!isMap(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
 
         const errors: SchemaValidationError[] = [];
@@ -583,7 +583,7 @@ export class YMythicSkillMap extends YMap {
     }
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (!isMap(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
 
         const errors: SchemaValidationError[] = [];
@@ -685,7 +685,7 @@ export class YMythicSkill extends YamlSchema {
     }
     override postValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (!isScalar(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!\nRaw type: ${this.rawTypeText}`, doc, value)];
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
         const { source, lineLengths } = doc;
 
