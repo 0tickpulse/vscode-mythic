@@ -34,9 +34,9 @@ export function cursorValidInRange(doc: DocumentInfo, range: CustomRange, cursor
     return text.trim() === "";
 }
 
-export function scalarValue({ value }: Scalar): string {
-    if (typeof value === "string") {
-        return String(value); // for some reason, this is necessary
+export function scalarValue({ value }: Scalar): string | number | boolean {
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+        return value;
     }
     return "";
 }

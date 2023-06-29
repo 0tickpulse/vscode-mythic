@@ -187,7 +187,7 @@ export const mythicItemSchema: YamlSchema = new YMap(
                         return Optional.of(`${err} - no id`);
                     }
                     const idValue = scalarValue(id);
-                    if (!["potion", "splash_potion", "lingering_potion", "tipped_arrow"].includes(idValue)) {
+                    if (!["potion", "splash_potion", "lingering_potion", "tipped_arrow"].includes(String(idValue))) {
                         return Optional.of(`${err} - id is incorrect`);
                     }
                     return Optional.empty();

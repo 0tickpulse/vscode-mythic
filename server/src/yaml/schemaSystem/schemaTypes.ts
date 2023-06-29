@@ -160,8 +160,8 @@ export class YString extends YamlSchema {
         }
         return [];
     }
-    #check(value1: string, value2: string) {
-        return this.caseSensitive ? value1 === value2 : value1.toLowerCase() === value2.toLowerCase();
+    #check(value1: string | number | boolean, value2: string) {
+        return this.caseSensitive ? String(value1) === value2 : String(value1).toLowerCase() === value2.toLowerCase();
     }
     get rawTypeText() {
         return this.literal.map((literal) => `"${literal}"`).otherwise("string");
@@ -256,8 +256,9 @@ export class YBool extends YamlSchema {
         if (!isScalar(value)) {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
-        if (scalarValue(value) !== "true" && scalarValue(value) !== "false") {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
+        const str = scalarValue(value);
+        if (str !== "true" && str !== "false") {
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}! Got ${str}`, doc, value)];
         }
         return [];
     }
@@ -661,7 +662,7 @@ export class YUnion extends YamlSchema {
             }
             return Optional.empty<string>();
         });
-        const closest = isScalar(value) ? getClosestTo(scalarValue(value), literals) : undefined;
+        const closest = isScalar(value) ? getClosestTo(String(scalarValue(value)), literals) : undefined;
         return [
             new SchemaValidationError(this, `Expected ${this.typeText}!${closest !== undefined ? `\nDid you mean ${closest}?` : ""}`, doc, value),
         ];
