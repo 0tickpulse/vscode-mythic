@@ -1,6 +1,6 @@
 import { Color, Optional } from "tick-ts-utils";
 import { SemanticTokenTypes } from "vscode-languageserver";
-import { Node, isMap, isScalar } from "yaml";
+import { Node, Scalar, isMap, isScalar } from "yaml";
 import { Highlight, ColorHint } from "../../../colors.js";
 import { CustomRange } from "../../../utils/positionsAndRanges.js";
 import { DocumentInfo } from "../../parser/documentInfo.js";
@@ -182,7 +182,7 @@ export const mythicItemSchema: YamlSchema = new YMap(
                     if (!isMap(value)) {
                         return Optional.of(`${err} - not map`);
                     }
-                    const id = value.items.find(i => (i.key as any)?.value === "Id")?.value;
+                    const id = value.items.find(i => (i.key as Scalar)?.value === "Id")?.value;
                     if (!id || !isScalar(id)) {
                         return Optional.of(`${err} - no id`);
                     }
