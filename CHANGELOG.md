@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Super fancy logging colors so it is clearer what is going on (it seems that VSCode's output panel doesn't support ANSI escape codes though)
+- Placeholder support for most strings in most schemas (enabled by default)
+
 ### Changed
 
 - The parse schedule timer is now dynamically adjusted based on the number of files in the workspace. This means that for smaller workspaces, the extension should generally be more responsive.
