@@ -1,4 +1,4 @@
-import { MythicData, MythicHovers } from "./models.js";
+import { MythicData, MythicHovers } from "./types.js";
 import { generateHover } from "./services.js";
 
 export const data = ({

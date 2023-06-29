@@ -4,8 +4,8 @@ import { Expr, GenericStringExpr, MechanicExpr, MlcPlaceholderExpr, MlcValueExpr
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver/node.js";
 import { getClosestTo } from "./utils/utils.js";
 import { CustomRange } from "./utils/positionsAndRanges.js";
-import { getClosestMatch } from "./minecraftData/services.js";
-import { MythicField, MythicFieldType } from "./minecraftData/models.js";
+import { getClosestMatch } from "./mythicData/services.js";
+import { MythicField, MythicFieldType } from "./mythicData/types.js";
 
 export class SyntaxError extends Error {
     #codeDescription: string | undefined;

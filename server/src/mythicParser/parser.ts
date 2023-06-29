@@ -11,7 +11,7 @@
 
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import { SyntaxError } from "../errors.js";
-import { getAllConditionsAndAliases, getAllMechanicsAndAliases, getAllTargetersAndAliases, getHover } from "../minecraftData/services.js";
+import { getAllConditionsAndAliases, getAllMechanicsAndAliases, getAllTargetersAndAliases, getHover } from "../mythicData/services.js";
 import { CustomPosition } from "../utils/positionsAndRanges.js";
 import {
     GenericStringExpr,

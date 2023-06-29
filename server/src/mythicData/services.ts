@@ -21,7 +21,7 @@ import {
     MythicFieldTypePotion,
     MythicFieldTypeString,
     MythicHolder,
-} from "./models.js";
+} from "./types.js";
 import { ArrayIncludes, FilterArrayKeyIncludes } from "../utils/types.js";
 import { Hover } from "vscode-languageserver";
 import { CustomRange, r } from "../utils/positionsAndRanges.js";

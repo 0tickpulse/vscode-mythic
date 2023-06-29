@@ -21,7 +21,7 @@ export class SchemaValidationError {
         public node: Node | null,
         public range = node !== null ? CustomRange.fromYamlRange(doc.lineLengths, node.range!) : null,
     ) {
-        this.message = message + `\n\nGot: ${node?.toString()}`; // TODO - Format the message better
+        this.message = message //+ `\n\nGot: ${node?.toString()}`; // TODO - Format the message better
     }
 }
 

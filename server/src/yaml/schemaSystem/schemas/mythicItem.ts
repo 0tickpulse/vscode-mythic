@@ -5,7 +5,7 @@ import { Highlight, ColorHint } from "../../../colors.js";
 import { CustomRange } from "../../../utils/positionsAndRanges.js";
 import { DocumentInfo } from "../../parser/documentInfo.js";
 import materials from "../bigData/materials.js";
-import { YMap, YObj, YUnion, YString, YArr, YNum, SchemaValidationError, YamlSchema } from "../schemaTypes.js";
+import { YMap, YObj, YUnion, YString, YArr, YNum, SchemaValidationError, YamlSchema, YMythicSkill } from "../schemaTypes.js";
 import { mdSeeAlso } from "../../../utils/utils.js";
 import { getNodeValueRange } from "../schemaUtils.js";
 
@@ -126,5 +126,10 @@ export const mythicItemSchema: YamlSchema = new YMap(
             required: false,
             description: "Some other sub-options of the item." + mdSeeAlso("Items/Items#options", "Items/Options"),
         },
+        Skills: {
+            schema: new YArr(new YMythicSkill(true)),
+            required: false,
+            description: "The skills of the item." + mdSeeAlso("Items/Items#skills"),
+        }
     }),
 );

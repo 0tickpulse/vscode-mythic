@@ -1,5 +1,5 @@
-import { VARIABLE_SCOPES, data, typedData } from "../minecraftData/data.js";
-import { MythicField, MythicHolder } from "../minecraftData/models.js";
+import { VARIABLE_SCOPES, data, typedData } from "../mythicData/data.js";
+import { MythicField, MythicHolder } from "../mythicData/types.js";
 import {
     getAllMechanicsAndAliases,
     getAllFields,
@@ -9,7 +9,7 @@ import {
     MechanicsAndAliases,
     generateHover,
     generateHoverForField,
-} from "../minecraftData/services.js";
+} from "../mythicData/services.js";
 import { ResolverError, UnknownMechanicResolverError } from "../errors.js";
 import {
     Expr,
