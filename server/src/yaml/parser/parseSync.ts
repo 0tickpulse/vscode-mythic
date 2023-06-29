@@ -59,7 +59,10 @@ const flushProcedures: (() => void)[] = [];
 /**
  * Document-specific procedures that run before parsing a document.
  */
-const flushDocProcedures: ((doc: TextDocument) => void)[] = [({ uri }) => globalData.flush(uri)];
+const flushDocProcedures: ((doc: TextDocument) => void)[] = [
+    ({ uri }) => globalData.flush(uri),
+    ({ uri }) => server.connection.sendDiagnostics({ uri, diagnostics: [] }),
+];
 export function onFlush(procedure: () => void) {
     flushProcedures.push(procedure);
 }
@@ -71,7 +74,7 @@ export function scheduleParse() {
     scheduledParse = Optional.of(
         setTimeout(() => {
             if (PARTIAL_PARSE_QUEUE.size === 0 && FULL_PARSE_QUEUE.size === 0) {
-                warn("Parser", "No documents to parse - skipping...")
+                warn("Parser", "No documents to parse - skipping...");
                 return;
             }
             info("Parser", `Parsing ${PARTIAL_PARSE_QUEUE.size} documents partially and ${FULL_PARSE_QUEUE.size} documents fully.`);
@@ -120,7 +123,7 @@ export function scheduleParse() {
             FULL_PARSE_QUEUE.clear();
             info("Parser", `Finished parsing! Requesting semantic token refresh...`);
             // server.connection.languages.semanticTokens.refresh();
-        }, FULL_PARSE_QUEUE.size * 10),
+        }, FULL_PARSE_QUEUE.size * 10 + 10),
     );
 }
 
