@@ -101,7 +101,7 @@ for (const type of [
     attributeSlotSchema.setProperty(type, new YNum());
 }
 
-for (const slot of ["mainhand", "offhand", "head", "chest", "legs", "feet", "all"]) {
+for (const slot of ["MainHand", "OffHand", "Head", "Chest", "Legs", "Feet", "All"]) {
     attributeSchema.setProperty(slot, attributeSlotSchema);
 }
 
