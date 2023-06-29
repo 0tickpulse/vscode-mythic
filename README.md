@@ -11,14 +11,9 @@
 
 <p align="center">A Visual Studio Code extension that adds language support for MythicMobs configurations.</p>
 
-## 🚨 Disclaimer
-
-This extension is still in development. It is not yet ready for use.
-
 ## 📖 Table of Contents
 
-- [🚨 Disclaimer](#-disclaimer)
-- [📖 Table of Contents](#-table-of-contents)
+- [� Table of Contents](#-table-of-contents)
 - [🚀 Features](#-features)
   - [🎉 Current](#-current)
     - [Basic Syntax Highlighting](#basic-syntax-highlighting)
