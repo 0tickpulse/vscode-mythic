@@ -41,7 +41,7 @@
 
 #### Color decorations
 
-Below is a screenshot of item lore configuration (Credits: LcorpOfficial):
+Below is a screenshot of item lore configuration (Credits: @LcorpOfficial):
 
 ![Color Decorations](./assets/color_decorations.png)
 
