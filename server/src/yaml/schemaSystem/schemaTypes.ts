@@ -257,7 +257,7 @@ export class YBool extends YamlSchema {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
         const str = scalarValue(value);
-        if (str !== "true" && str !== "false") {
+        if (str !== true && str !== false) {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}! Got ${str}`, doc, value)];
         }
         return [];
@@ -595,8 +595,7 @@ export class YMythicSkillMap extends YMap {
                 const keyNode = item.key as Node;
                 const key = keyNode.toString();
                 const declarationRange = CustomRange.fromYamlRange(doc.lineLengths, keyNode.range!);
-                const description = keyNode.commentBefore ?? undefined;
-                globalData.mythic.skills.add(new CachedMythicSkill(doc, [item.key as Node, item.value as Node], declarationRange, key, description));
+                globalData.mythic.skills.add(new CachedMythicSkill(doc, [keyNode, item.value as Node], declarationRange, key));
                 doc.addHover({
                     range: declarationRange,
                     contents: YMythicSkillMap.generateKeyHover(key),

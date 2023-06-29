@@ -10,6 +10,10 @@
 
 - The `mythicyaml` language mode is no longer needed. The extension now automatically detects MythicMobs configuration YAML files.
 
+### Fixed
+
+- Fixed a bug where the global skills list would not be cleared properly.
+
 ## 1.9.3 - 2023-06-28
 
 ### Added

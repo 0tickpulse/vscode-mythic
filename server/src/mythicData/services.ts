@@ -43,7 +43,7 @@ type b = typeof data.mechanic;
 //   ^?
 
 export function getAllMechanicsAndAliases(): string[] {
-    return [...typedData.mechanic.flatMap((m) => m.names), ...[...globalData.mythic.skills].map((s) => `skill:${s.name}`)];
+    return [...typedData.mechanic.flatMap((m) => m.names), ...globalData.mythic.skills.all().map((s) => `skill:${s.name}`)];
 }
 
 export function getAllConditionsAndAliases(): string[] {
@@ -57,11 +57,11 @@ export function getAllTargetersAndAliases(): string[] {
 export function getHolderFromName(type: keyof MythicData, name: string): Optional<MythicHolder> {
     if (type === "mechanic" && name.startsWith("skill:")) {
         const skillName = name.slice("skill:".length);
-        const skill = [...globalData.mythic.skills].find((s) => s.name === skillName);
+        const skill = globalData.mythic.skills.all().find((s) => s.name === skillName);
         if (skill) {
             return Optional.of({
                 names: [name],
-                description: `User-defined skill ${skillName}${(skill.description ? `\n\n${skill.description}` : "")}\n\nDefined in ${skill.path.fmt()}:${skill.declarationRange.fmt()}`,
+                description: `User-defined skill ${skillName}${(skill.description ? `\n\n${skill.description}` : ". No description provided.")}\n\nDefined in ${skill.path.fmt()}:${skill.declarationRange.fmt()}`,
                 definition: {
                     doc: skill.path,
                     range: skill.declarationRange,

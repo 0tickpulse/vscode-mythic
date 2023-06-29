@@ -60,7 +60,7 @@ const flushProcedures: (() => void)[] = [];
 /**
  * Document-specific procedures that run before parsing a document.
  */
-const flushDocProcedures: ((doc: TextDocument) => void)[] = [];
+const flushDocProcedures: ((doc: TextDocument) => void)[] = [({ uri }) => globalData.flush(uri)];
 export function onFlush(procedure: () => void) {
     flushProcedures.push(procedure);
 }
@@ -69,10 +69,6 @@ export function onFlushDoc(procedure: (doc: TextDocument) => void) {
 }
 export function scheduleParse() {
     scheduledParse.ifPresent(clearTimeout);
-    // console.log(stripIndentation`[parser] Cleared parsing timeout and created a new one!
-    // ${PARTIAL_PARSE_QUEUE.size} documents queued for partial parsing
-    // ${FULL_PARSE_QUEUE.size} documents queued for full parsing
-    // `);
     scheduledParse = Optional.of(
         setTimeout(() => {
             if (PARTIAL_PARSE_QUEUE.size === 0 && FULL_PARSE_QUEUE.size === 0) {
@@ -81,6 +77,11 @@ export function scheduleParse() {
             console.log(`[parser] Parsing ${PARTIAL_PARSE_QUEUE.size} documents partially and ${FULL_PARSE_QUEUE.size} documents fully.`);
             const diagnostics = new Map<string, Diagnostic[]>();
             flushProcedures.forEach((procedure) => procedure());
+            const flushDoc = (doc: TextDocument) => {
+                console.log(`[parser] Flushing data for ${doc.uri}`);
+                flushDocProcedures.forEach((procedure) => procedure(doc));
+                console.log(`[parser] Flushed data for ${doc.uri}`)
+            };
             const pre = (doc: TextDocument) => {
                 console.log(`[parser] Preparsing ${doc.uri}`);
                 const start = Date.now();
@@ -100,7 +101,10 @@ export function scheduleParse() {
                 console.log(`[parser] Postparsed ${doc.uri} (${documentInfo.errors.length} errors) in ${duration}ms`);
                 diagnostics.set(doc.uri, documentInfo.errors);
             };
+            // TODO: perhaps reduce the amount of loops here
+            PARTIAL_PARSE_QUEUE.forEach(flushDoc);
             PARTIAL_PARSE_QUEUE.forEach(pre);
+            FULL_PARSE_QUEUE.forEach(flushDoc);
             FULL_PARSE_QUEUE.forEach(pre);
             FULL_PARSE_QUEUE.forEach(post);
             // clear diagnostics

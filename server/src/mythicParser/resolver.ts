@@ -1,16 +1,20 @@
-import { VARIABLE_SCOPES, data, typedData } from "../mythicData/data.js";
-import { MythicField, MythicHolder } from "../mythicData/types.js";
+import { Color, Optional, stripIndentation } from "tick-ts-utils";
+import { Hover, SemanticTokenTypes } from "vscode-languageserver";
+import { ColorHint, Highlight } from "../colors.js";
+import { ResolverError, UnknownMechanicResolverError } from "../errors.js";
+import { VARIABLE_SCOPES } from "../mythicData/data.js";
 import {
-    getAllMechanicsAndAliases,
-    getAllFields,
-    getHolderFromName,
-    getHolderFieldFromName,
-    validate,
-    MechanicsAndAliases,
     generateHover,
     generateHoverForField,
+    getAllMechanicsAndAliases,
+    getHolderFieldFromName,
+    getHolderFromName,
+    validate,
 } from "../mythicData/services.js";
-import { ResolverError, UnknownMechanicResolverError } from "../errors.js";
+import { MythicHolder } from "../mythicData/types.js";
+import { CustomRange, r } from "../utils/positionsAndRanges.js";
+import { todo } from "../utils/utils.js";
+import { DocumentInfo, RangeLink } from "../yaml/parser/documentInfo.js";
 import {
     Expr,
     ExprVisitor,
@@ -28,12 +32,6 @@ import {
     TriggerExpr,
 } from "./parserExpressions.js";
 import { MythicToken } from "./scanner.js";
-import { Hover, SemanticTokenTypes } from "vscode-languageserver";
-import { RangeLink, DocumentInfo } from "../yaml/parser/documentInfo.js";
-import { CustomRange, r } from "../utils/positionsAndRanges.js";
-import { Color, Optional, stripIndentation } from "tick-ts-utils";
-import { ColorHint, Highlight } from "../colors.js";
-import { todo } from "../utils/utils.js";
 
 export class Resolver extends ExprVisitor<void> {
     #source = "";

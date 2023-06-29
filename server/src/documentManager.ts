@@ -17,6 +17,30 @@ export const globalData = {
         },
     },
     mythic: {
-        skills: new Set<CachedMythicSkill>(),
-    }
+        /**
+         * A cached registry of Mythic skills as a map of document URI to skill.
+         */
+        skills: {
+            map: new Map<string, CachedMythicSkill[]>(),
+            add(skill: CachedMythicSkill) {
+                const skills = this.map.get(skill.path.base.uri);
+                if (skills) {
+                    skills.push(skill);
+                } else {
+                    this.map.set(skill.path.base.uri, [skill]);
+                }
+            },
+            all() {
+                const skills: CachedMythicSkill[] = [];
+                for (const skillList of this.map.values()) {
+                    skills.push(...skillList);
+                }
+                return skills;
+            },
+        },
+    },
+    flush(uri: string) {
+        this.documents.list.delete(uri);
+        this.mythic.skills.map.delete(uri);
+    },
 };
