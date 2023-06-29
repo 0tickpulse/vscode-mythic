@@ -43,8 +43,6 @@ export async function activate(context: ExtensionContext) {
     client = new LanguageClient("mythicLanguageServer", "Mythic Language Server", serverOptions, clientOptions);
     context.subscriptions.push(status);
 
-    console.log(client.clientOptions);
-
     client.start();
     log("Server started!");
 }

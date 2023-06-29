@@ -2,12 +2,13 @@ import { CompletionItem, CompletionList, CompletionParams } from "vscode-languag
 import { globalData } from "../documentManager.js";
 import { autoComplete, postParse, preParse } from "../yaml/parser/parseSync.js";
 import { p } from "../utils/positionsAndRanges.js";
+import { logEvent } from "../utils/logging.js";
 
 export default ({ textDocument, position, }: CompletionParams): CompletionItem[] | null => {
-    console.log(`[completionService] ${textDocument.uri}`);
+    logEvent("completionService", textDocument)
     const doc = globalData.documents.getDocument(textDocument.uri);
     if (!doc) {
-        console.log(`[completionService] ${textDocument.uri} (no document)`);
+        logEvent("completionService", textDocument, "(no document)")
         return null;
     }
     autoComplete(doc, p(position));

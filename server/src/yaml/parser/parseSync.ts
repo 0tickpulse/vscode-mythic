@@ -4,11 +4,10 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { parseDocument } from "yaml";
 import { globalData } from "../../documentManager.js";
 import { server } from "../../index.js";
-import { isLanguageModeCaused } from "../../services/didChangeContentService.js";
-import {} from "../../services/semanticTokensService.js";
 import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import { PATH_MAP } from "../schemaSystem/data.js";
 import { DocumentInfo } from "./documentInfo.js";
+import { info, warn } from "../../utils/logging.js";
 
 class DocumentQueue {
     #items: TextDocument[] = [];
@@ -39,7 +38,7 @@ export const FULL_PARSE_QUEUE = new DocumentQueue();
 let scheduledParse: Optional<NodeJS.Timeout> = Optional.empty();
 export function queuePartial(doc: TextDocument) {
     PARTIAL_PARSE_QUEUE.add(doc);
-    console.log(`[parser] Queued ${doc.uri} for partial parsing`);
+    info("Parser", `Queued ${doc.uri} for partial parsing`);
     scheduleParse();
 }
 /**
@@ -50,7 +49,7 @@ export function queuePartial(doc: TextDocument) {
  */
 export function queueFull(doc: TextDocument) {
     FULL_PARSE_QUEUE.add(doc);
-    console.log(`[parser] Queued ${doc.uri} for full parsing`);
+    info("Parser", `Queued ${doc.uri} for full parsing`);
     scheduleParse();
 }
 /**
@@ -72,33 +71,34 @@ export function scheduleParse() {
     scheduledParse = Optional.of(
         setTimeout(() => {
             if (PARTIAL_PARSE_QUEUE.size === 0 && FULL_PARSE_QUEUE.size === 0) {
+                warn("Parser", "No documents to parse - skipping...")
                 return;
             }
-            console.log(`[parser] Parsing ${PARTIAL_PARSE_QUEUE.size} documents partially and ${FULL_PARSE_QUEUE.size} documents fully.`);
+            info("Parser", `Parsing ${PARTIAL_PARSE_QUEUE.size} documents partially and ${FULL_PARSE_QUEUE.size} documents fully.`);
             const diagnostics = new Map<string, Diagnostic[]>();
             flushProcedures.forEach((procedure) => procedure());
             const flushDoc = (doc: TextDocument) => {
-                console.log(`[parser] Flushing data for ${doc.uri}`);
+                info("Parser", `Flushing data for ${doc.uri}`);
                 flushDocProcedures.forEach((procedure) => procedure(doc));
-                console.log(`[parser] Flushed data for ${doc.uri}`)
+                info("Parser", `Flushed data for ${doc.uri}`);
             };
             const pre = (doc: TextDocument) => {
-                console.log(`[parser] Preparsing ${doc.uri}`);
+                info("Parser", `Preparsing ${doc.uri}`);
                 const start = Date.now();
                 const documentInfo = preParse(doc);
                 globalData.documents.set(documentInfo);
                 const duration = Date.now() - start;
-                console.log(`[parser] Preparsed ${doc.uri} (${documentInfo.errors.length} errors) in ${duration}ms`);
+                info("Parser", `Preparsed ${doc.uri} (${documentInfo.errors.length} errors) in ${duration}ms`);
                 diagnostics.set(doc.uri, documentInfo.errors);
             };
             const post = (doc: TextDocument) => {
-                console.log(`[parser] Postparsing ${doc.uri}`);
+                info("Parser", `Postparsing ${doc.uri}`);
                 const start = Date.now();
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we just set it in the previous closure
                 const documentInfo = postParse(globalData.documents.getDocument(doc.uri)!);
                 globalData.documents.set(documentInfo);
                 const duration = Date.now() - start;
-                console.log(`[parser] Postparsed ${doc.uri} (${documentInfo.errors.length} errors) in ${duration}ms`);
+                info("Parser", `Postparsed ${doc.uri} (${documentInfo.errors.length} errors) in ${duration}ms`);
                 diagnostics.set(doc.uri, documentInfo.errors);
             };
             // TODO: perhaps reduce the amount of loops here
@@ -109,12 +109,16 @@ export function scheduleParse() {
             FULL_PARSE_QUEUE.forEach(post);
             // clear diagnostics
             diagnostics.forEach((diagnostics, uri) => {
+                if (diagnostics.length === 0) {
+                    warn("Parser", `No diagnostics for ${uri} - skipping...`);
+                    return;
+                }
                 server.connection.sendDiagnostics({ uri, diagnostics });
-                console.log(`[parser] Sent ${diagnostics.length} diagnostics for ${uri}`);
+                info("Parser", `Sent ${diagnostics.length} diagnostics for ${uri}`);
             });
             PARTIAL_PARSE_QUEUE.clear();
             FULL_PARSE_QUEUE.clear();
-            console.log(`[parser] Finished parsing! Requesting semantic token refresh...`);
+            info("Parser", `Finished parsing! Requesting semantic token refresh...`);
             // server.connection.languages.semanticTokens.refresh();
         }, FULL_PARSE_QUEUE.size * 10),
     );
@@ -147,9 +151,6 @@ export function preParse(doc: TextDocument) {
         }),
     );
     schema.ifPresent((schema) => {
-        isLanguageModeCaused.add(uri);
-        // console.log(`Schema found for ${uri}: ${schema.get().getDescription()}`);
-        // const errors = [...schema.get().preValidate(documentInfo, yamlAst.contents!), ...schema.get().validateAndModify(documentInfo, yamlAst.contents!)];
         const errors = schema.runPreValidation(documentInfo, yamlAst.contents!);
         errors.forEach((error) => {
             error.range !== null &&

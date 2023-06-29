@@ -3,17 +3,18 @@ import { globalData } from "../documentManager.js";
 import { p } from "../utils/positionsAndRanges.js";
 import { filterMap } from "../utils/utils.js";
 import { Optional } from "tick-ts-utils";
+import { logEvent } from "../utils/logging.js";
 
-export default ({ position, textDocument, partialResultToken, workDoneToken }: DefinitionParams): Location[] => {
+export default ({ position, textDocument }: DefinitionParams): Location[] => {
     const { uri } = textDocument;
-    console.log(`[definitionService] ${uri}`);
+    logEvent("definitionService", textDocument);
     const doc = globalData.documents.getDocument(uri);
     if (!doc) {
-        console.log(`[definitionService] ${uri} (no document)`);
+        logEvent("definitionService", textDocument, "(no document)");
         return [];
     }
     const { gotoDefinitions } = doc;
-    console.log(`[definitionService] ${uri} (found ${gotoDefinitions.length} definitions)`);
+    logEvent("definitionService", textDocument, `(found ${gotoDefinitions.length} definitions)`);
     return filterMap(gotoDefinitions, ({ fromRange, targetDoc, targetRange }) => {
         if (!fromRange.contains(p(position))) {
             return Optional.empty();

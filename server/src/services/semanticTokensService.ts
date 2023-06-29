@@ -8,6 +8,7 @@ import {
 } from "vscode-languageserver";
 import { globalData } from "../documentManager.js";
 import { FULL_PARSE_QUEUE, PARTIAL_PARSE_QUEUE } from "../yaml/parser/parseSync.js";
+import { logEvent } from "../utils/logging.js";
 
 // /**
 //  * Map of document URIs to semantic tokens.
@@ -18,22 +19,22 @@ import { FULL_PARSE_QUEUE, PARTIAL_PARSE_QUEUE } from "../yaml/parser/parseSync.
 // })
 
 export default async ({ textDocument }: SemanticTokensParams): Promise<SemanticTokens> => {
-    console.log(`[semanticTokensService] ${textDocument.uri}`);
+    logEvent("semanticTokensService", textDocument);
     const { uri } = textDocument;
     const doc = globalData.documents.getDocument(uri);
     if (!doc) {
-        console.log(`[semanticTokensService] ${textDocument.uri} (no document)`);
+        logEvent("semanticTokensService", textDocument, "(no document)");
         return null as unknown as SemanticTokens; // the lsp spec allows null to be returned, but the typescript types don't. this should hopefully be fixed soon
     }
     const { highlights } = doc;
 
     if (PARTIAL_PARSE_QUEUE.size > 0 && FULL_PARSE_QUEUE.size > 0) {
-        console.log(`[semanticTokensService] ${textDocument.uri} (partial and full parse queued)`);
+        logEvent("semanticTokensService", textDocument, "(waiting for parse)");
         // hasn't been parsed yet
         return null as unknown as SemanticTokens; // refer to above comment
     }
 
-    console.log(`Processing ${highlights.length} highlights`);
+    logEvent("semanticTokensService", textDocument, `(processing ${highlights.length} highlights)`);
     highlights.sort((a, b) => a.range.start.compareTo(b.range.start));
 
     let lastLine = 0;

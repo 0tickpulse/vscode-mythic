@@ -3,17 +3,18 @@ import { globalData } from "../documentManager.js";
 import { filterMap } from "../utils/utils.js";
 import { Optional } from "tick-ts-utils";
 import { p } from "../utils/positionsAndRanges.js";
+import { logEvent } from "../utils/logging.js";
 
 export default ({ position, textDocument }: ReferenceParams): Location[] => {
     const { uri } = textDocument;
-    console.log(`[referenceService] ${textDocument.uri}`);
+    logEvent("referenceService", textDocument)
     const doc = globalData.documents.getDocument(uri);
     if (!doc) {
-        console.log(`[referenceService] ${uri} (no document)`);
+        logEvent("referenceService", textDocument, "(no document)");
         return [];
     }
     const { gotoReferences } = doc;
-    console.log(`[referenceService] ${uri} (found ${gotoReferences.length} references)`);
+    logEvent("referenceService", textDocument, `(found ${gotoReferences.length} references)`);
     return filterMap(gotoReferences, ({ fromRange, targetDoc, targetRange }) => {
         if (!fromRange.contains(p(position))) {
             return Optional.empty();
