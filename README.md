@@ -18,6 +18,7 @@
   - [🎉 Current](#-current)
     - [Basic Syntax Highlighting](#basic-syntax-highlighting)
     - [Go to definition and references](#go-to-definition-and-references)
+    - [Color decorations](#color-decorations)
   - [🚧 Planned](#-planned)
 - [🚩 Current Limitations](#-current-limitations)
 - [📦 Installation](#-installation)
@@ -37,6 +38,12 @@
 #### Go to definition and references
 
 (Todo: Add gif)
+
+#### Color decorations
+
+Below is a screenshot of item lore configuration:
+
+![Color Decorations](./assets/color_decorations.png)
 
 ### 🚧 Planned
 
