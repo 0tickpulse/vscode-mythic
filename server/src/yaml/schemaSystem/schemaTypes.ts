@@ -10,7 +10,9 @@ import { globalData } from "../../documentManager.js";
 import { CompletionItem, CompletionItemKind, Hover, SemanticTokenTypes } from "vscode-languageserver";
 import { Highlight } from "../../colors.js";
 import { server } from "../../index.js";
-import { cursorValidInRange, scalarValue } from "./schemaUtils.js";
+import { cursorValidInRange, getNodeValueRange, scalarValue } from "./schemaUtils.js";
+import { MythicScanner } from "../../mythicParser/scanner.js";
+import { Parser } from "../../mythicParser/parser.js";
 
 export class SchemaValidationError {
     message: string;
@@ -114,7 +116,7 @@ export class YamlSchema {
 export class YString extends YamlSchema {
     literal: Optional<string>;
     completionItem: Optional<CompletionItem>;
-    constructor(literal?: string, public caseSensitive = true) {
+    constructor(literal?: string, public caseSensitive = true, public supportsPlaceholders = true) {
         super();
         this.literal = Optional.of(literal);
         this.completionItem = this.literal.map((literal) => ({
@@ -135,7 +137,6 @@ export class YString extends YamlSchema {
         return this.literal.map((literal) => `"${literal}"`).otherwise("a string");
     }
     override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
-        console.log(`[YString] ${this.literal}`);
         if (!isScalar(value)) {
             return;
         }
@@ -155,13 +156,24 @@ export class YString extends YamlSchema {
         if (!isScalar(value)) {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
-        if (this.literal.isPresent() && !this.#check(scalarValue(value), this.literal.get())) {
+        const str = String(scalarValue(value));
+        if (this.supportsPlaceholders) {
+            const range = getNodeValueRange(doc, value);
+            const scanner = new MythicScanner(str).scanTokens();
+            const parser = new Parser(scanner);
+            const ast = parser.parseMlcValue();
+            ast.ifPresent((ast) => {
+                const resolver = new Resolver().setAst(ast);
+                resolver.resolveWithDoc(doc, range.yamlRange[0]);
+            });
+        }
+        if (this.literal.isPresent() && !this.#check(str, this.literal.get())) {
             return [new SchemaValidationError(this, `Expected value "${this.literal.get()}"!`, doc, value)];
         }
         return [];
     }
-    #check(value1: string | number | boolean, value2: string) {
-        return this.caseSensitive ? String(value1) === value2 : String(value1).toLowerCase() === value2.toLowerCase();
+    #check(value1: string, value2: string) {
+        return this.caseSensitive ? value1 === value2 : value1.toLowerCase() === value2.toLowerCase();
     }
     get rawTypeText() {
         return this.literal.map((literal) => `"${literal}"`).otherwise("string");

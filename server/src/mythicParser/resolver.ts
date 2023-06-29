@@ -50,6 +50,7 @@ export class Resolver extends ExprVisitor<void> {
     setAst(expr: Expr) {
         this.#expr = Optional.of(expr);
         this.#source = expr.parser.result.source;
+        return this;
     }
     resolveWithDoc(doc: DocumentInfo, initialOffset: number) {
         this.#hovers = [];

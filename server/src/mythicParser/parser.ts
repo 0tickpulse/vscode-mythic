@@ -9,10 +9,11 @@
 // placeholderText = identifier ( + "." + placeholderText );
 // inline skill = "[" + ( "-" + skillLine )* + "]"
 
-import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import { Optional } from "tick-ts-utils";
+import { CompletionItem } from "vscode-languageserver";
 import { SyntaxError } from "../errors.js";
-import { getAllConditionsAndAliases, getAllMechanicsAndAliases, getAllTargetersAndAliases, getHover } from "../mythicData/services.js";
 import { CustomPosition } from "../utils/positionsAndRanges.js";
+import { YString } from "../yaml/schemaSystem/schemaTypes.js";
 import {
     GenericStringExpr,
     HealthModifierExpr,
@@ -76,6 +77,24 @@ export class Parser {
             this.#isCompleting = false;
         }
     }
+    /**
+     * Should only be used by {@link YString}
+     */
+    parseMlcValue(): Optional<MlcValueExpr> {
+        this.#current = 0;
+        if (this.result.errors?.length ?? 0 > 0) {
+            return Optional.empty();
+        }
+        try {
+            const mlc = this.#mlcValue();
+            if (mlc instanceof MlcValueExpr) {
+                return Optional.of(mlc);
+            }
+            return Optional.empty();
+        } catch (e) {
+            return Optional.empty();
+        }
+    }
     parseMythicSkill(): MythicSkillParseResult {
         this.#current = 0;
         if (this.result.errors?.length ?? 0 > 0) {
@@ -90,15 +109,7 @@ export class Parser {
             throw e;
         }
     }
-    /**
-     * Used for debugging.
-     * Comment out the console.log line to disable.
-     */
-    #log(msg: string) {
-        // console.log(`[Parser] ${msg} (current: ${this.#current})`);
-    }
     #skillLine(...exitTypes: MythicTokenType[]) {
-        this.#log("skillLine");
         // this.#completion(
         //     getAllMechanicsAndAliases().map((m): CompletionItem => {
         //         const item: CompletionItem = { label: m, kind: CompletionItemKind.Function };
@@ -147,7 +158,6 @@ export class Parser {
         return new SkillLineExpr(this, this.#currentPosition(), mechanic, targeter, trigger, conditions, chance, healthModifier);
     }
     #mechanic() {
-        this.#log("mechanic");
         const name = this.#genericString(["LeftBrace", "Space"], "Expected mechanic name!");
         if (name.values.length === 0) {
             throw this.#error(this.#peek(), "Expected mechanic name!");
@@ -161,7 +171,6 @@ export class Parser {
         return new MechanicExpr(this, this.#currentPosition(), name, undefined, [], undefined);
     }
     #targeter() {
-        this.#log("targeter");
         const at = this.#previous();
         // this.#completion(
         //     getAllTargetersAndAliases().map((t): CompletionItem => {
@@ -181,7 +190,6 @@ export class Parser {
         return new TargeterExpr(this, this.#currentPosition(), at, name, undefined, [], undefined);
     }
     #trigger() {
-        this.#log("trigger");
         const caret = this.#previous();
         const name = this.#genericString(["LeftBrace", "Space"], "Expected trigger name!");
         let arg: GenericStringExpr | undefined = undefined;
@@ -193,7 +201,6 @@ export class Parser {
         return new TriggerExpr(this, this.#currentPosition(), caret, name, colon, arg);
     }
     #inlineCondition() {
-        this.#log("inlineCondition");
         const question = this.#previous();
         let not = false;
         let trigger = false;
@@ -224,7 +231,6 @@ export class Parser {
     }
 
     #healthModifier() {
-        this.#log("healthModifier");
         // healthModifier = ( ( "<" | ">" ) + number ( + percent )? ) | ( "=" + number ( + percent )? ( + "-" + number ( + percent )? )? )\
         const operator = this.#consumeAny(["Equal", "GreaterThan", "LessThan"], "Expected health modifier operator!");
         const min: [MythicToken, MythicToken?] = [this.#consume("Number", "Expected health modifier value!")];
@@ -242,7 +248,6 @@ export class Parser {
     }
 
     #mlc() {
-        this.#log("mlc");
         const mlcs: MlcExpr[] = [];
         do {
             let semicolon: MythicToken | undefined = undefined;
@@ -266,13 +271,13 @@ export class Parser {
         } while (this.#match("Semicolon"));
         return mlcs;
     }
-    #mlcValue(key: MythicToken) {
-        this.#log("mlcValue");
+    #mlcValue(key?: MythicToken) {
         const parts: (MythicToken[] | MlcPlaceholderExpr)[] = [];
         let start = this.#current;
         // special case for inline skills
         // TODO this is a bit hacky, maybe find a better way to do this
         if (
+            key !== undefined &&
             this.#match("LeftSquareBracket") &&
             ["skill", "skills", "s", "ontick", "onhit", "onend", "ot", "oh", "oe"].includes(key.lexeme?.toLowerCase() ?? "")
         ) {
@@ -301,7 +306,6 @@ export class Parser {
         return new MlcValueExpr(this, this.#currentPosition(), parts);
     }
     #placeholder() {
-        this.#log("placeholder");
         // genericString ( + "." + genericString )*
         const leftSquareBracket = this.#previous();
         const parts: [GenericStringExpr, MythicToken?, MlcExpr[]?, MythicToken?][] = [];
@@ -329,7 +333,6 @@ export class Parser {
         return new MlcPlaceholderExpr(this, this.#currentPosition(), leftSquareBracket, parts, dots, rightSquareBracket);
     }
     #inlineSkill() {
-        this.#log("inlineSkill");
         const leftSquareBracket = this.#previous();
         const dashesAndSkills: [MythicToken, SkillLineExpr][] = [];
         while (!this.#check("RightSquareBracket") && !this.#isAtEnd()) {
@@ -354,7 +357,6 @@ export class Parser {
     }
 
     #genericString(end: MythicTokenType[], error = "Expected a string!") {
-        this.#log("genericString");
         const start = this.#current;
         while (!this.#checkAny(...end) && !this.#isAtEnd()) {
             if (this.#check("LeftBrace")) {
