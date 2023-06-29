@@ -31,13 +31,14 @@ import { MythicToken } from "./scanner.js";
 import { Hover, SemanticTokenTypes } from "vscode-languageserver";
 import { RangeLink, DocumentInfo } from "../yaml/parser/documentInfo.js";
 import { CustomRange, r } from "../utils/positionsAndRanges.js";
-import { Optional, stripIndentation } from "tick-ts-utils";
-import { Highlight } from "../colors.js";
+import { Color, Optional, stripIndentation } from "tick-ts-utils";
+import { ColorHint, Highlight } from "../colors.js";
 import { todo } from "../utils/utils.js";
 
 export class Resolver extends ExprVisitor<void> {
     #source = "";
     #doc?: DocumentInfo;
+    #initialOffset = 0;
     #hovers: Hover[] = [];
     #errors: ResolverError[] = [];
     #gotoDefinitions: RangeLink[] = [];
@@ -58,6 +59,7 @@ export class Resolver extends ExprVisitor<void> {
         this.#characters = new Map();
         this.#gotoDefinitions = [];
         this.#doc = doc;
+        this.#initialOffset = initialOffset;
         this.resolve();
         const hoverRanges = CustomRange.addMultipleOffsets(
             doc.lineLengths,
@@ -297,12 +299,12 @@ export class Resolver extends ExprVisitor<void> {
             v.forEach((token) => this.#addHighlight(token.range, SemanticTokenTypes.string));
         });
     }
-    override visitMlcPlaceholderExpr(mlcValue: MlcPlaceholderExpr): void {
-        const { greaterThanBracket, lessThanBracket } = mlcValue;
+    override visitMlcPlaceholderExpr(mlcPlaceholder: MlcPlaceholderExpr): void {
+        const { greaterThanBracket, lessThanBracket } = mlcPlaceholder;
         this.#addHighlight(greaterThanBracket.range, SemanticTokenTypes.comment);
         this.#addHighlight(lessThanBracket.range, SemanticTokenTypes.comment);
 
-        for (const identifier of mlcValue.identifiers) {
+        for (const identifier of mlcPlaceholder.identifiers) {
             this.#addHighlightGenericString(identifier[0], SemanticTokenTypes.comment);
             if (identifier[1] !== undefined) {
                 this.#addHighlight(identifier[1].range, SemanticTokenTypes.operator);
@@ -314,8 +316,26 @@ export class Resolver extends ExprVisitor<void> {
                 this.#addHighlight(identifier[3].range, SemanticTokenTypes.operator);
             }
         }
-        for (const dot of mlcValue.dots) {
+        for (const dot of mlcPlaceholder.dots) {
             this.#addHighlight(dot.range, SemanticTokenTypes.comment);
+        }
+
+        if (mlcPlaceholder.identifiers.length === 1 && this.#doc) {
+            const [identifier] = mlcPlaceholder.identifiers[0];
+            const source = identifier.value();
+            // check if its a hex color
+            if (source.startsWith("#") && source.length === 7) {
+                const color = Color.parseHex(source);
+                const range = identifier.range.addOffset(this.#doc.lineLengths, this.#initialOffset);
+                color.ifOk((color) => {
+                    this.#doc?.colorHints.push(
+                        new ColorHint(range, color, "HEX Minimessage tag", (newColor) => ({
+                            range,
+                            newText: new Color(newColor.red * 255, newColor.green * 255, newColor.blue * 255).toHex(),
+                        })),
+                    );
+                });
+            }
         }
     }
     override visitInlineSkillExpr(inlineSkill: InlineSkillExpr): void {
