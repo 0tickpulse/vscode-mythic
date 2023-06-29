@@ -24,6 +24,7 @@ This extension is still in development. It is not yet ready for use.
     - [Basic Syntax Highlighting](#basic-syntax-highlighting)
     - [Go to definition and references](#go-to-definition-and-references)
   - [🚧 Planned](#-planned)
+- [🚩 Current Limitations](#-current-limitations)
 - [📦 Installation](#-installation)
 - [📝 License](#-license)
 - [🧑‍🤝‍🧑 Credits](#-credits)
@@ -46,6 +47,11 @@ This extension is still in development. It is not yet ready for use.
 
 - Complete data set
 - Autocompletions
+
+## 🚩 Current Limitations
+
+- The extension is not built with YAML aliases in mind. This might be changed in the future, but for now, they will lead to unexpected behavior.
+- The extension is meant to be used in one single workspace/server. It is not (yet?) possible to use it in multiple workspaces/servers at once.
 
 ## 📦 Installation
 
