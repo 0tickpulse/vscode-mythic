@@ -23,7 +23,7 @@
 - [🚩 Current Limitations](#-current-limitations)
 - [📦 Installation](#-installation)
 - [📝 License](#-license)
-- [🧑‍🤝‍🧑 Credits](#-credits)
+- [❤️ Credits and Acknowledgements](#️-credits-and-acknowledgements)
 
 ## 🚀 Features
 
@@ -41,7 +41,7 @@
 
 #### Color decorations
 
-Below is a screenshot of item lore configuration:
+Below is a screenshot of item lore configuration (Credits: LcorpOfficial):
 
 ![Color Decorations](./assets/color_decorations.png)
 
@@ -63,6 +63,8 @@ Install the extension from the [Visual Studio Marketplace](https://marketplace.v
 
 This project is licensed under AGPLv3. A copy can be found [here](./LICENSE).
 
-## 🧑‍🤝‍🧑 Credits
+## ❤️ Credits and Acknowledgements
 
 - Microsoft and the VSCode team, for providing the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), [VSCode Extension API](https://code.visualstudio.com/api), [YAML tmLanguage](https://code.visualstudio.com/api/language-extensions/syntax-highlight-guide), and more.
+- [MythicMobs](https://www.mythicmobs.net/) and [its community](http://www.mythicmobs.net/discord), for creating and maintaining the plugin.
+- Every contributor on my discord server, for helping me with testing and providing feedback.
