@@ -1,9 +1,10 @@
 # Changelogs
 
-## Unreleased
+## 1.9.4 - 2023-06-29
 
 ### Added
 
+- Added color decorations to MiniMessage tags.
 - Super fancy logging colors so it is clearer what is going on (it seems that VSCode's output panel doesn't support ANSI escape codes though)
 - Placeholder support for most strings in most schemas (enabled by default)
 
@@ -14,10 +15,14 @@
 ### Removed
 
 - The `mythicyaml` language mode is no longer needed. The extension now automatically detects MythicMobs configuration YAML files.
+- Removed the raw type in Schema Validation Errors. This was a debugging feature.
 
 ### Fixed
 
 - Fixed a bug where the global skills list would not be cleared properly.
+- Fixed a bug where using the color picker would lead to unexpected behavior.
+- Corrected the capitalization of attribute slot names.
+- Fixed a bug where MythicSkills would not be properly cached and flushed, leading to unexpected behavior.
 
 ## 1.9.3 - 2023-06-28
 
