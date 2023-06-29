@@ -41,25 +41,17 @@ export async function activate(context: ExtensionContext) {
     status.show();
 
     client = new LanguageClient("mythicLanguageServer", "Mythic Language Server", serverOptions, clientOptions);
-    const changedLanguage = new Set<string>();
     context.subscriptions.push(status);
+
+    console.log(client.clientOptions);
 
     client.start();
     log("Server started!");
 }
 
-function fullParseStartStatus(status: StatusBarItem) {
-    status.text = "MM: Full workspace parse...";
-}
-
 function fullParseDefaultStatus(status: StatusBarItem) {
     status.text = "Mythic Language Server";
 }
-
-type SetLanguageParams = {
-    uri: string;
-    language: string;
-};
 
 export function log(msg: string) {
     console.log(`${new Date().toLocaleTimeString()}: ${msg}`);
