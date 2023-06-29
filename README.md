@@ -13,7 +13,7 @@
 
 ## 📖 Table of Contents
 
-- [� Table of Contents](#-table-of-contents)
+- [📖 Table of Contents](#-table-of-contents)
 - [🚀 Features](#-features)
   - [🎉 Current](#-current)
     - [Basic Syntax Highlighting](#basic-syntax-highlighting)
