@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- The parse schedule timer is now dynamically adjusted based on the number of files in the workspace. This means that for smaller workspaces, the extension should generally be more responsive.
+
 ### Removed
 
 - The `mythicyaml` language mode is no longer needed. The extension now automatically detects MythicMobs configuration YAML files.

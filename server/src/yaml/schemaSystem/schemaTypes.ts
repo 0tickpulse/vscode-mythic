@@ -21,7 +21,7 @@ export class SchemaValidationError {
         public node: Node | null,
         public range = node !== null ? CustomRange.fromYamlRange(doc.lineLengths, node.range!) : null,
     ) {
-        this.message = message //+ `\n\nGot: ${node?.toString()}`; // TODO - Format the message better
+        this.message = message; //+ `\n\nGot: ${node?.toString()}`; // TODO - Format the message better
     }
 }
 
@@ -362,6 +362,10 @@ export class YObj extends YamlSchema {
                 schema: YamlSchema;
                 required?: boolean;
                 description?: string;
+                /**
+                 * Conditions that must be met for this property to be valid.
+                 */
+                conditions?: ((doc: DocumentInfo, value: Node) => Optional<string>)[];
             }
         > = {},
     ) {
@@ -390,7 +394,7 @@ export class YObj extends YamlSchema {
         const errors: SchemaValidationError[] = [];
 
         // iterate over schema
-        for (const [key, { schema, required, description }] of Object.entries(this.properties)) {
+        for (const [key, { schema, required, description, conditions }] of Object.entries(this.properties)) {
             const item = items.find((i) => {
                 if (i.key === null) {
                     return false;
@@ -400,18 +404,25 @@ export class YObj extends YamlSchema {
             if (item) {
                 const error = schema.runPreValidation(doc, item.value);
                 errors.push(...error);
-                if (item.key !== null && description) {
-                    const range = item.key.range;
-                    if (range) {
-                        const customRange = CustomRange.fromYamlRange(doc.lineLengths, range);
-                        customRange &&
-                            doc.addHover({
-                                range: customRange,
-                                contents: stripIndentation`Property \`${this.name ?? ""}${key}\`: \`${schema.typeText}\`
+                if (item.key !== null) {
+                    if (description) {
+                        const range = item.key.range;
+                        if (range) {
+                            const customRange = CustomRange.fromYamlRange(doc.lineLengths, range);
+                            customRange &&
+                                doc.addHover({
+                                    range: customRange,
+                                    contents: stripIndentation`Property \`${this.name ?? ""}${key}\`: \`${schema.typeText}\`
 
-                                ${description}`,
-                            });
+                                    ${description}`,
+                                });
+                        }
                     }
+                    conditions?.forEach((condition) => {
+                        condition(doc, value).ifPresent((message) => {
+                            errors.push(new SchemaValidationError(this, message, doc, item.key));
+                        });
+                    });
                 }
             } else if (required) {
                 errors.push(new SchemaValidationError(this, `Missing required property "${key}"!`, doc, value));

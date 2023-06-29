@@ -1,13 +1,13 @@
 import { Color, Optional } from "tick-ts-utils";
 import { SemanticTokenTypes } from "vscode-languageserver";
-import { Node, isScalar } from "yaml";
+import { Node, isMap, isScalar } from "yaml";
 import { Highlight, ColorHint } from "../../../colors.js";
 import { CustomRange } from "../../../utils/positionsAndRanges.js";
 import { DocumentInfo } from "../../parser/documentInfo.js";
 import materials from "../bigData/materials.js";
 import { YMap, YObj, YUnion, YString, YArr, YNum, SchemaValidationError, YamlSchema, YMythicSkill } from "../schemaTypes.js";
 import { mdSeeAlso } from "../../../utils/utils.js";
-import { getNodeValueRange } from "../schemaUtils.js";
+import { getNodeValueRange, scalarValue } from "../schemaUtils.js";
 
 class YItemColor extends YString {
     constructor() {
@@ -83,6 +83,28 @@ materialTypesSchema.items.forEach((item) => {
     });
 });
 
+const attributeSchema = new YObj();
+const attributeSlotSchema = new YObj();
+for (const type of [
+    "MaxHealth",
+    "FollowRange",
+    "KnockbackResistance",
+    "MovementSpeed",
+    "AttackDamage",
+    "Armor",
+    "ArmorToughness",
+    "Luck",
+    "AttackSpeed",
+    "AttackKnockback",
+    "FlyingSpeed",
+]) {
+    attributeSlotSchema.setProperty(type, new YNum());
+}
+
+for (const slot of ["mainhand", "offhand", "head", "chest", "legs", "feet", "all"]) {
+    attributeSchema.setProperty(slot, attributeSlotSchema);
+}
+
 export const mythicItemSchema: YamlSchema = new YMap(
     new YObj({
         Id: {
@@ -115,6 +137,16 @@ export const mythicItemSchema: YamlSchema = new YMap(
             required: false,
             description: "An alias for CustomModelData." + mdSeeAlso("Items/Items#custommodeldata"),
         },
+        Attributes: {
+            schema: attributeSchema,
+            required: false,
+            description: "The attributes of the item." + mdSeeAlso("Items/Items#attributes", "Items/Attributes"),
+        },
+        Amount: {
+            schema: new YNum(1, 64, true, true, true),
+            required: false,
+            description: "The default amount of items to give when called by the plugin." + mdSeeAlso("Items/Items#amount"),
+        },
         Options: {
             schema: new YObj({
                 Color: {
@@ -126,10 +158,48 @@ export const mythicItemSchema: YamlSchema = new YMap(
             required: false,
             description: "Some other sub-options of the item." + mdSeeAlso("Items/Items#options", "Items/Options"),
         },
+        Enchantments: {
+            schema: new YArr(new YString()), // TODO
+            required: false,
+            description: "The enchantments of the item." + mdSeeAlso("Items/Items#enchantments", "Items/Enchantments"),
+        },
+        Hide: {
+            schema: new YArr(
+                YUnion.literals("ARMOR_TRIM", "ATTRIBUTES", "DESTROYS", "DYE", "ENCHANTS", "PLACED_ON", "POTION_EFFECTS", "UNBREAKABLE"),
+            ),
+            required: false,
+            description: "Sets some flags to be hidden from the item's tooltip." + mdSeeAlso("Items/Items#hide"),
+        },
+        PotionEffects: {
+            schema: new YArr(new YString()), // TODO
+            required: false,
+            description:
+                "The potion effects of the item. Requires this item to have Id `potion`, `splash_potion`, `lingering_potion`, or `tipped_arrow`" +
+                mdSeeAlso("Items/Items#potioneffects", "Items/PotionEffects"),
+            conditions: [
+                (doc, value) => {
+                    const err = "PotionEffects requires the item to have id `potion`, `splash_potion`, `lingering_potion`, or `tipped_arrow`!";
+                    if (!isMap(value)) {
+                        return Optional.of(`${err} - not map`);
+                    }
+                    const id = value.items.find(i => (i.key as any)?.value === "Id")?.value;
+                    if (!id || !isScalar(id)) {
+                        return Optional.of(`${err} - no id`);
+                    }
+                    const idValue = scalarValue(id);
+                    if (!["potion", "splash_potion", "lingering_potion", "tipped_arrow"].includes(idValue)) {
+                        return Optional.of(`${err} - id is incorrect`);
+                    }
+                    return Optional.empty();
+                },
+            ],
+        },
         Skills: {
             schema: new YArr(new YMythicSkill(true)),
             required: false,
-            description: "The skills of the item." + mdSeeAlso("Items/Items#skills"),
-        }
+            description:
+                "The skills of the item. Requires [🔗 MythicCrucible](https://mythiccraft.io/index.php?resources/crucible-create-unbelievable-mythic-items.2/)" +
+                mdSeeAlso("Items/Items#skills"),
+        },
     }),
 );
