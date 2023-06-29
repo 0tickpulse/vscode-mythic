@@ -621,7 +621,7 @@ export class YMythicSkillMap extends YMap {
                     range: declarationRange,
                     contents: YMythicSkillMap.generateKeyHover(key),
                 });
-                doc.addHighlight(new Highlight(declarationRange, SemanticTokenTypes.function));
+                doc.addHighlight(new Highlight(declarationRange, SemanticTokenTypes.function, ["declaration"]));
             }
             const error = this.values.runPreValidation(doc, item.value as Node);
             errors.push(...error);
@@ -684,7 +684,12 @@ export class YUnion extends YamlSchema {
         });
         const closest = isScalar(value) ? getClosestTo(String(scalarValue(value)), literals) : undefined;
         return [
-            new SchemaValidationError(this, `Expected ${this.typeText}!${closest !== undefined ? `\nDid you mean ${closest}?\nDoc contents:\n${doc.source}` : ""}`, doc, value),
+            new SchemaValidationError(
+                this,
+                `Expected ${this.typeText}!${closest !== undefined ? `\nDid you mean ${closest}?\nDoc contents:\n${doc.source}` : ""}`,
+                doc,
+                value,
+            ),
         ];
     }
     override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {

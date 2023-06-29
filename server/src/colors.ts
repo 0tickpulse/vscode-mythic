@@ -30,13 +30,21 @@ export const SEMANTIC_TOKEN_TYPES: SemanticTokenTypes[] = [
     SemanticTokenTypes.decorator,
 ];
 
+export const SEMANTIC_TOKEN_MODIFIERS = [
+    "declaration",
+] as const;
+export type SemanticTokenModifier = typeof SEMANTIC_TOKEN_MODIFIERS[number];
+
 /**
  * @template ColorFormat The format the color takes. Color is a RGB color, string is a CSS color.
  */
 export class Highlight {
-    constructor(public range: CustomRange, public color: SemanticTokenTypes) {}
+    constructor(public range: CustomRange, public color: SemanticTokenTypes, public modifiers: SemanticTokenModifier[] = []) {}
     getColorIndex() {
         return SEMANTIC_TOKEN_TYPES.indexOf(this.color);
+    }
+    get modifierBitFlag(): number {
+        return this.modifiers.reduce((acc, m) => acc | (1 << SEMANTIC_TOKEN_MODIFIERS.indexOf(m)), 0);
     }
 }
 

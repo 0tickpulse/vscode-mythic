@@ -1,5 +1,5 @@
 import { InitializeParams, InitializeResult, ProgressType } from "vscode-languageserver";
-import { SEMANTIC_TOKEN_TYPES } from "../colors.js";
+import { SEMANTIC_TOKEN_MODIFIERS, SEMANTIC_TOKEN_TYPES } from "../colors.js";
 import { server } from "../index.js";
 import { queuePartial, scheduleParse } from "../yaml/parser/parseSync.js";
 import { URI } from "vscode-uri";
@@ -49,7 +49,7 @@ export default async (params: InitializeParams): Promise<InitializeResult> => {
                 range: false,
                 legend: {
                     tokenTypes: SEMANTIC_TOKEN_TYPES,
-                    tokenModifiers: [],
+                    tokenModifiers: SEMANTIC_TOKEN_MODIFIERS as unknown as string[], // type conversion because we want to convert from a readonly array to a normal array
                 },
             },
         },

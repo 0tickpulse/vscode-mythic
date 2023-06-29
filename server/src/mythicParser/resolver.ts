@@ -1,6 +1,6 @@
 import { Color, Optional, stripIndentation } from "tick-ts-utils";
 import { Hover, SemanticTokenTypes } from "vscode-languageserver";
-import { ColorHint, Highlight } from "../colors.js";
+import { ColorHint, Highlight, SemanticTokenModifier } from "../colors.js";
 import { ResolverError, UnknownMechanicResolverError } from "../errors.js";
 import { VARIABLE_SCOPES } from "../mythicData/data.js";
 import {
@@ -40,7 +40,7 @@ export class Resolver extends ExprVisitor<void> {
     #hovers: Hover[] = [];
     #errors: ResolverError[] = [];
     #gotoDefinitions: RangeLink[] = [];
-    #characters: Map<CustomRange, SemanticTokenTypes> = new Map();
+    #characters: Map<CustomRange, [SemanticTokenTypes, SemanticTokenModifier[]]> = new Map();
     #skillVariables: Map<string, MlcValueExpr | SkillLineExpr> = new Map();
     #currentSkill: SkillLineExpr | undefined = undefined;
     #expr: Optional<Expr> = Optional.empty();
@@ -77,9 +77,7 @@ export class Resolver extends ExprVisitor<void> {
             doc.addError({ ...error.toDiagnostic(), range: errorRanges.shift()! });
         });
         const characterRanges = CustomRange.addMultipleOffsets(doc.lineLengths, Array.from(this.#characters.keys()), initialOffset);
-        this.#characters.forEach((color, range) => {
-            doc.addHighlight(new Highlight(characterRanges.shift()!, color));
-        });
+        this.#characters.forEach((color, range) => doc.addHighlight(new Highlight(characterRanges.shift()!, color[0], color[1])));
         const defRanges = CustomRange.addMultipleOffsets(
             doc.lineLengths,
             this.#gotoDefinitions.map((def) => def.fromRange),
@@ -91,8 +89,9 @@ export class Resolver extends ExprVisitor<void> {
             doc.addGotoDefinitionAndReverseReference(def);
         });
     }
-    #addHighlight(range: CustomRange, color: SemanticTokenTypes) {
-        this.#characters.set(range, color);
+    #addHighlight(range: CustomRange, color: SemanticTokenTypes, modifiers: SemanticTokenModifier[] = []) {
+        this.#characters.set(range, [color, modifiers]);
+        return [color, modifiers] as const;
     }
     #addHighlightGenericString(genericString: GenericStringExpr, color: SemanticTokenTypes) {
         this.#addHighlight(genericString.range, color);
@@ -129,14 +128,14 @@ export class Resolver extends ExprVisitor<void> {
     }
     override visitMechanicExpr(mechanic: MechanicExpr): void {
         const mechanicName = mechanic.identifier.value();
-        this.#addHighlight(mechanic.getNameRange(), SemanticTokenTypes.function);
+        const nameHighlight = this.#addHighlight(mechanic.getNameRange(), SemanticTokenTypes.function);
         if (mechanic.leftBrace) {
             this.#addHighlight(mechanic.leftBrace.range, SemanticTokenTypes.operator);
         }
         for (const mlc of mechanic.mlcs ?? []) {
             this.visitMlcExpr(mlc);
         }
-        mechanic.rightBrace && this.#addHighlight(mechanic.rightBrace.range, SemanticTokenTypes.operator);
+        mechanic.rightBrace !== undefined && this.#addHighlight(mechanic.rightBrace.range, SemanticTokenTypes.operator);
 
         if (!getAllMechanicsAndAliases().includes(mechanicName)) {
             this.#errors.push(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill));
@@ -155,6 +154,7 @@ export class Resolver extends ExprVisitor<void> {
                 if (data.definition) {
                     this.#gotoDefinitions.push(new RangeLink(mechanic.getNameRange(), data.definition.range, data.definition.doc));
                     this.#doc?.addDependency(data.definition.doc);
+                    nameHighlight[1].push("mutable");
                 }
             })
             .map((d) => d.fields)

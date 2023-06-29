@@ -52,7 +52,7 @@ export default async ({ textDocument }: SemanticTokensParams): Promise<SemanticT
         tokens[tokenIndex++] = char;
         tokens[tokenIndex++] = length;
         tokens[tokenIndex++] = type;
-        tokens[tokenIndex++] = 0;
+        tokens[tokenIndex++] = highlight.modifierBitFlag;
         lastLine = highlight.range.start.line;
         lastChar = highlight.range.start.character;
     }

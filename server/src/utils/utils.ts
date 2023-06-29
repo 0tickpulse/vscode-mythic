@@ -53,3 +53,11 @@ export function mdLinkWiki(path: string) {
 export function mdSeeAlso(...paths: string[]) {
     return `\n\n## See Also\n\n${paths.map((path) => `* ${mdLinkWiki(path)}`).join("\n\n")}`;
 }
+
+export function sumUsingBitFlags(numbers: number[]): number {
+    let sum = 0;
+    for (const num of numbers) {
+        sum |= num;
+    }
+    return sum;
+}
