@@ -1,4 +1,4 @@
-<div align="center"><h1><img src="./assets/mythicIcon_128x128.png" height=40> VSCode Mythic</h1></div>
+<div align="center"><h1><img src="./assets/mythicIcon_white_128x128.png" height=40> VSCode Mythic</h1></div>
 
 <div align="center">
     <a href="https://discord.gg/SHthmb6t6n">
