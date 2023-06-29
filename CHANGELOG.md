@@ -1,5 +1,11 @@
 # Changelogs
 
+## Unreleased
+
+### Fixes
+
+- Fixed document errors retaining even after you edit the file.
+
 ## 1.9.4 - 2023-06-29
 
 ### Added
