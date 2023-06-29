@@ -32,7 +32,6 @@ import {
     TriggerExpr,
 } from "./parserExpressions.js";
 import { MythicToken } from "./scanner.js";
-import { dbg } from "../utils/logging.js";
 
 export class Resolver extends ExprVisitor<void> {
     #source = "";
@@ -329,10 +328,16 @@ export class Resolver extends ExprVisitor<void> {
                 const range = identifier.range.addOffset(this.#doc.lineLengths, this.#initialOffset);
                 color.ifOk((color) => {
                     this.#doc?.colorHints.push(
-                        new ColorHint(range, color, `HEX Minimessage tag}`, (newColor) => ({
+                        new ColorHint(
                             range,
-                            newText: newColor.toHex(),
-                        }), (newColor) => `HEX Minimessage tag`),
+                            color,
+                            `HEX Minimessage tag}`,
+                            (newColor) => ({
+                                range,
+                                newText: newColor.toHex(),
+                            }),
+                            (newColor) => `HEX Minimessage tag`,
+                        ),
                     );
                 });
             }
