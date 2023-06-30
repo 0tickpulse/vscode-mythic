@@ -11,9 +11,9 @@
 
 import { Optional } from "tick-ts-utils";
 import { CompletionItem } from "vscode-languageserver";
-import { SyntaxError } from "../errors.js";
+import { MythicError, MythicSyntaxError } from "../errors.js";
 import { CustomPosition } from "../utils/positionsAndRanges.js";
-import { YString } from "../yaml/schemaSystem/schemaTypes.js";
+import { YString } from "../yaml/schemaSystem/schemaTypes/YString.js";
 import {
     GenericStringExpr,
     HealthModifierExpr,
@@ -30,11 +30,11 @@ import {
 import { MythicScannerResult, MythicToken, MythicTokenType } from "./scanner.js";
 
 export class MythicSkillParseResult {
-    private constructor(public skillLine?: SkillLineExpr, public errors?: SyntaxError[], public completions?: string[]) {}
+    private constructor(public skillLine?: SkillLineExpr, public errors?: MythicError[], public completions?: string[]) {}
     static fromSkillLine(skillLine: SkillLineExpr) {
         return new MythicSkillParseResult(skillLine);
     }
-    static fromErrors(errors: SyntaxError[]) {
+    static fromErrors(errors: MythicError[]) {
         return new MythicSkillParseResult(undefined, errors);
     }
     hasErrors() {
@@ -103,7 +103,7 @@ export class Parser {
         try {
             return MythicSkillParseResult.fromSkillLine(this.#skillLine());
         } catch (e) {
-            if (e instanceof SyntaxError) {
+            if (e instanceof MythicError) {
                 return MythicSkillParseResult.fromErrors([e]);
             }
             throw e;
@@ -460,8 +460,8 @@ export class Parser {
     #previous(): MythicToken {
         return this.#tokens[this.#current - 1];
     }
-    #error(token: MythicToken, message: string): SyntaxError {
-        return new SyntaxError(token.range, this.result.source ?? "", message, token);
+    #error(token: MythicToken, message: string): MythicError {
+        return new MythicSyntaxError(token.range, this.result.source, message);
     }
     #completion(completions: CompletionItem[]): void {
         if (!this.#isCompleting) {

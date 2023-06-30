@@ -1,5 +1,5 @@
 import { Range } from "vscode-languageserver-textdocument";
-import { SyntaxError } from "../errors.js";
+import { MythicError } from "../errors.js";
 import { CustomPosition, CustomRange, r } from "../utils/positionsAndRanges.js";
 
 export const TOKEN_TYPE = [
@@ -69,7 +69,7 @@ export class MythicToken {
 
 export type MythicScannerResult = {
     tokens?: MythicToken[];
-    errors?: SyntaxError[];
+    errors?: MythicError[];
     source: string;
 };
 
@@ -126,7 +126,7 @@ export class MythicScanner {
             this.#tokens.push(new MythicToken(this.#source, "Eof", "", "", this.#line, this.#start, this.#current));
             return { tokens: this.#tokens, errors: [], source: this.#source };
         } catch (e: unknown) {
-            return { errors: [e as SyntaxError], source: this.#source };
+            return { errors: [e as MythicError], source: this.#source };
         }
     }
 
@@ -143,7 +143,7 @@ export class MythicScanner {
             this.#advance();
         }
         if (this.#isAtEnd()) {
-            throw new SyntaxError(this.#getCurrentRange(), this.#source, "Unterminated string.");
+            throw new MythicError(this.#getCurrentRange(), this.#source, "Unterminated string.");
         }
         // closing "
         this.#advance();

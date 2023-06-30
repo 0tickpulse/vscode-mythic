@@ -7,14 +7,13 @@ import { CustomRange } from "./utils/positionsAndRanges.js";
 import { getClosestMatch } from "./mythicData/services.js";
 import { MythicField, MythicFieldType } from "./mythicData/types.js";
 
-export class SyntaxError extends Error {
+export abstract class MythicError extends Error {
     #codeDescription: string | undefined;
     #severity: DiagnosticSeverity = 1;
     constructor(
         public readonly range: CustomRange,
         public readonly source: string,
         public message: string,
-        public readonly token?: MythicToken,
         public readonly code = 0,
     ) {
         super();
@@ -39,28 +38,29 @@ export class SyntaxError extends Error {
     }
 }
 
-export class InvalidFieldValueError extends SyntaxError {
-    constructor(source: string, message: string, public field: MythicFieldType, expr: MlcValueExpr , range = expr.range, code = 0) {
-        super(range, source, message, undefined, code);
+// SYNTAX ERROR: 1
+export class MythicSyntaxError extends MythicError {
+    constructor(range: CustomRange, source: string, message: string) {
+        super(range, source, message, 1);
     }
 }
 
-export class ResolverError extends SyntaxError {
-    constructor(source: string, message: string, expr: Expr, range = expr.range, skill?: SkillLineExpr, code = 0) {
-        super(range, source, message, undefined, code);
+export class InvalidFieldValueError extends MythicError {
+    constructor(source: string, message: string, public field: MythicFieldType, expr: MlcValueExpr , range = expr.range) {
+        super(range, source, message, 2);
     }
 }
 
-export class UnknownMechanicResolverError extends ResolverError {
+export class UnknownMechanicError extends MythicError {
     constructor(source: string, mechanic: MechanicExpr, skill?: SkillLineExpr) {
         const value = mechanic.identifier.value();
         let message = `Unknown mechanic '${value}'`;
-        let closest = getClosestMatch("mechanic", value);
+        const closest = getClosestMatch("mechanic", value);
         if (closest !== undefined) {
             message += `. Did you mean '${closest}'?`;
         }
         const range = mechanic.identifier.range;
-        super(source, message, mechanic, range, skill, 1);
+        super(range, source, message, 3);
         this.setCodeDescription("unknown-mechanic");
         this.setSeverity(DiagnosticSeverity.Error);
     }

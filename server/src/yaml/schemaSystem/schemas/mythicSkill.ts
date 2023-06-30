@@ -1,5 +1,12 @@
 import { mdSeeAlso } from "../../../utils/utils.js";
-import { YMythicSkillMap, YObj, YArr, YMythicCondition, YNum, YString, YMythicSkill, YamlSchema } from "../schemaTypes.js";
+import { YamlSchema } from "../schemaTypes.js";
+import { YMythicCondition } from "../schemaTypes/YMythicCondition.js";
+import { YMythicSkill } from "../schemaTypes/YMythicSkill.js";
+import { YMythicSkillMap } from "../schemaTypes/YMythicSkillMap.js";
+import { YObj } from "../schemaTypes/YObj.js";
+import { YArr } from "../schemaTypes/YArr.js";
+import { YNum } from "../schemaTypes/YNum.js";
+import { YString } from "../schemaTypes/YString.js";
 
 export const mythicSkillSchema: YamlSchema = new YMythicSkillMap(
     new YObj({

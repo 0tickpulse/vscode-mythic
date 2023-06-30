@@ -5,7 +5,14 @@ import { Highlight, ColorHint } from "../../../colors.js";
 import { CustomRange } from "../../../utils/positionsAndRanges.js";
 import { DocumentInfo } from "../../parser/documentInfo.js";
 import materials from "../bigData/materials.js";
-import { YMap, YObj, YUnion, YString, YArr, YNum, SchemaValidationError, YamlSchema, YMythicSkill } from "../schemaTypes.js";
+import { SchemaValidationError, YamlSchema } from "../schemaTypes.js";
+import { YMythicSkill } from "../schemaTypes/YMythicSkill.js";
+import { YUnion } from "../schemaTypes/YUnion.js";
+import { YMap } from "../schemaTypes/YMap.js";
+import { YObj } from "../schemaTypes/YObj.js";
+import { YArr } from "../schemaTypes/YArr.js";
+import { YNum } from "../schemaTypes/YNum.js";
+import { YString } from "../schemaTypes/YString.js";
 import { mdSeeAlso } from "../../../utils/utils.js";
 import { getNodeValueRange, scalarValue } from "../schemaUtils.js";
 

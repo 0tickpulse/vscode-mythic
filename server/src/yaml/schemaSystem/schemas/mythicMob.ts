@@ -1,6 +1,14 @@
 import { mdSeeAlso } from "../../../utils/utils.js";
 import mobTypes from "../bigData/mobTypes.js";
-import { YMap, YObj, YUnion, YString, YNum, YBool, YArr, YMythicSkill, YamlSchema } from "../schemaTypes.js";
+import { YamlSchema } from "../schemaTypes.js";
+import { YMythicSkill } from "../schemaTypes/YMythicSkill.js";
+import { YUnion } from "../schemaTypes/YUnion.js";
+import { YMap } from "../schemaTypes/YMap.js";
+import { YObj } from "../schemaTypes/YObj.js";
+import { YArr } from "../schemaTypes/YArr.js";
+import { YBool } from "../schemaTypes/YBool.js";
+import { YNum } from "../schemaTypes/YNum.js";
+import { YString } from "../schemaTypes/YString.js";
 
 export const mythicMobSchema: YamlSchema = new YMap(
     new YObj({
