@@ -87,7 +87,6 @@ export function p(line: number | Position, character?: number) {
 export class CustomRange implements DeepEquals {
     constructor(public start: CustomPosition, public end: CustomPosition) {}
     static fromYamlRange(lineLengths: number[], range: YamlRange) {
-        //         return new CustomRange(CustomPosition.fromOffset(source, range[0]), CustomPosition.fromOffset(source, range[1]));
         return new CustomRange(CustomPosition.fromOffset(lineLengths, range[0]!), CustomPosition.fromOffset(lineLengths, range[1]!));
     }
     equals(other: unknown): boolean {

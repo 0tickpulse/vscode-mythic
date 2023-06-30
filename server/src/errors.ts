@@ -55,7 +55,7 @@ export class UnknownMechanicResolverError extends ResolverError {
     constructor(source: string, mechanic: MechanicExpr, skill?: SkillLineExpr) {
         const value = mechanic.identifier.value();
         let message = `Unknown mechanic '${value}'`;
-        let closest = getClosestMatch("mechanic", value);
+        const closest = getClosestMatch("mechanic", value);
         if (closest !== undefined) {
             message += `. Did you mean '${closest}'?`;
         }

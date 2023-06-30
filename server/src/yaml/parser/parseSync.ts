@@ -130,7 +130,7 @@ export function scheduleParse() {
 export function preParse(doc: TextDocument) {
     const { uri } = doc;
     const source = doc.getText();
-    const documentInfo = new DocumentInfo(doc, parseDocument(source));
+    const documentInfo = new DocumentInfo(doc);
     const { yamlAst } = documentInfo;
     const { contents } = yamlAst;
     const lineLengths = source.split("\n").map((line) => line.length);

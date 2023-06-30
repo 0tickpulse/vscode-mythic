@@ -1,7 +1,7 @@
 import { Optional } from "tick-ts-utils";
 import { CompletionItem, Diagnostic, Hover } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { Document } from "yaml";
+import { Document, parseDocument } from "yaml";
 import { ColorHint, Highlight } from "../../colors.js";
 import { CustomPosition, CustomRange, r } from "../../utils/positionsAndRanges.js";
 import { YamlSchema } from "../schemaSystem/schemaTypes.js";
@@ -34,7 +34,7 @@ export class DocumentInfo {
     #dependencies: Set<string> = new Set();
     #dependents: Set<string> = new Set();
     autoCompletions: CompletionItem[] = [];
-    constructor(public base: TextDocument, public yamlAst: Document, hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
+    constructor(public base: TextDocument, public yamlAst: Document = parseDocument(base.getText(), { keepSourceTokens: true }), hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
         this.source = base.getText();
         this.hovers = hovers ?? [];
         this.schema = Optional.of(schema);

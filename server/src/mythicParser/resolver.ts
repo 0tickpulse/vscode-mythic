@@ -155,6 +155,8 @@ export class Resolver extends ExprVisitor<void> {
                     this.#gotoDefinitions.push(new RangeLink(mechanic.getNameRange(), data.definition.range, data.definition.doc));
                     this.#doc?.addDependency(data.definition.doc);
                     nameHighlight[1].push("mutable");
+                } else {
+                    nameHighlight[1].push("defaultLibrary");
                 }
             })
             .map((d) => d.fields)

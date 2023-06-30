@@ -22,15 +22,6 @@ export const server = {
     data: globalData,
 };
 
-function wrapInTryCatch<TArgs, TReturn>(fn: (...args: TArgs[]) => TReturn, fallback: TReturn) {
-    try {
-        return fn;
-    } catch (e) {
-        console.error(e);
-        return () => fallback;
-    }
-}
-
 function main() {
     const {
         connection,

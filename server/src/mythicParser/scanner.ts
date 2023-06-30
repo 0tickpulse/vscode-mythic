@@ -50,7 +50,7 @@ export class MythicToken {
         readonly start: number,
         readonly current: number,
     ) {
-        this.lineLengths = this.source.split("\n").map((line) => line.length);
+        this.lineLengths = this.source.split("\n").map((l) => l.length);
         this.range = r(CustomPosition.fromOffset(this.lineLengths, this.start), CustomPosition.fromOffset(this.lineLengths, this.current));
     }
 
