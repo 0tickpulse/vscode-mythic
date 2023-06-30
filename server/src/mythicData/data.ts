@@ -35,9 +35,7 @@ export const data = ({
     targeter: [],
 }) satisfies MythicData;
 
-export const typedData: MythicData = data as any;
-
-type a = any;
+export const typedData: MythicData = data as MythicData;
 
 export const compiledHovers: MythicHovers = {
     mechanic: typedData.mechanic.map((m) => ({ names: m.names, generate: (n: string) => generateHover("mechanic", n, m) })),
