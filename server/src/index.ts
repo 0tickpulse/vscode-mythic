@@ -12,6 +12,8 @@ import completionService from "./services/completionService.js";
 import documentColorService from "./services/documentColorService.js";
 import colorPresentationService from "./services/colorPresentationService.js";
 import completionResolveService from "./services/completionResolveService.js";
+import { dbg, info } from "./utils/logging.js";
+import { writeFileSync } from "fs";
 
 process.argv.push("--node-ipc");
 
@@ -52,5 +54,6 @@ function main() {
 }
 
 if (require.main === module) {
+    info(undefined, "Starting server...");
     main();
 }

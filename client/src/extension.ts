@@ -17,7 +17,10 @@ export async function activate(context: ExtensionContext) {
     log(`Attempting to start server from '${serverModule}'...`);
     const debugOptions: ForkOptions = { execArgv: ["--nolazy", "--inspect=6009"] };
     const serverOptions: ServerOptions = {
-        run: { module: serverModule, transport: TransportKind.ipc },
+        run: {
+            module: serverModule,
+            transport: TransportKind.ipc,
+        },
         debug: {
             module: serverModule,
             transport: TransportKind.ipc,
@@ -29,7 +32,7 @@ export async function activate(context: ExtensionContext) {
             {
                 scheme: "file",
                 language: "yaml",
-            }
+            },
         ],
     };
 

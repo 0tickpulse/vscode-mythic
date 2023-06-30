@@ -32,6 +32,7 @@ export const SEMANTIC_TOKEN_TYPES: SemanticTokenTypes[] = [
 
 export const SEMANTIC_TOKEN_MODIFIERS = [
     "declaration",
+    "mutable",
 ] as const;
 export type SemanticTokenModifier = typeof SEMANTIC_TOKEN_MODIFIERS[number];
 
