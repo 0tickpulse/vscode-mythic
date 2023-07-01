@@ -6,7 +6,6 @@ import { MythicScanner, MythicToken } from "../../mythicParser/scanner.js";
 import { DocumentInfo, RangeLink } from "../../yaml/parser/documentInfo.js";
 import { generateHover, getHolderFromName } from "../services.js";
 import { InvalidFieldValueError, MythicFieldType } from "../types.js";
-import { dbg } from "../../utils/logging.js";
 import { SyntaxError } from "../../errors.js";
 
 class MFMythicSkillParser extends Parser {
@@ -46,10 +45,6 @@ export class MFMythicSkill extends MythicFieldType {
     }
     override validate(doc: DocumentInfo, value: MlcValueExpr): Expr[] {
         const str = value.getSource();
-        dbg("mythicSkill", "Validating", {
-            str,
-            range: value.range,
-        });
         const scanner = new MythicScanner(doc, value.range.start.toOffset(doc.lineLengths), str);
         const tokens = scanner.scanTokens();
         let expr: InlineSkillExpr | MythicToken;

@@ -18,6 +18,12 @@
     ],
     "rules": {
         "@typescript-eslint/no-namespace": "off",
-        "@typescript-eslint/no-unused-vars": "off" // because TSServer handles this
+        "@typescript-eslint/no-unused-vars": "off", // because TSServer handles this
+        "no-constant-condition": [
+            "error",
+            {
+                "checkLoops": false
+            }
+        ]
     }
 }

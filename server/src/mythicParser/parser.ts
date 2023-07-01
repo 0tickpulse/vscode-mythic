@@ -27,7 +27,6 @@ import {
     TriggerExpr,
 } from "./parserExpressions.js";
 import { MythicScannerResult, MythicToken, MythicTokenType } from "./scanner.js";
-import { dbg } from "../utils/logging.js";
 
 export class MythicSkillParseResult {
     private constructor(public skillLine?: SkillLineExpr, public errors?: SyntaxError[], public completions?: string[]) {}
@@ -429,17 +428,6 @@ export class Parser {
         return types.includes(this.peek().type);
     }
     protected advance(): MythicToken {
-        dbg(
-            "parser",
-            "Advancing",
-            this.peek().lexeme,
-            "caused by",
-            new Error().stack
-                ?.split("\n")
-                .slice(2, 7)
-                .map((x) => x.trim())
-                .join("\n"),
-        );
         if (!this.isAtEnd()) {
             this.#current++;
         }

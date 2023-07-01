@@ -8,6 +8,7 @@ import { YamlSchema } from "../schemaSystem/schemaTypes.js";
 import { URI } from "vscode-uri";
 import { globalData } from "../../documentManager.js";
 import { info } from "console";
+import { dbg } from "../../utils/logging.js";
 
 /**
  * Describes a link between two ranges in two documents.
@@ -63,6 +64,7 @@ export class DocumentInfo {
         this.hovers.push(hover);
     }
     addError(error: Diagnostic) {
+        dbg("DocumentInfo", `Adding error ${error.message} to ${this.uri}`)
         this.errors.push({
             range: error.range,
             message: error.message,
@@ -113,7 +115,6 @@ export class DocumentInfo {
     addDependency(doc: Dependency) {
         this.#dependencies.add(doc);
         const docInfo = globalData.documents.getDocument(doc.doc.uri);
-        info("DocumentInfo", `Dep ${doc.doc.uri} --> ${this.uri}`)
         docInfo && docInfo.addDependent(this.dependency);
     }
     /**
@@ -122,7 +123,6 @@ export class DocumentInfo {
      * @param doc The dependent document.
      */
     addDependent(doc: Dependency) {
-        info("DocumentInfo", `Dep ${this.uri} <-- ${doc.doc.uri}`)
         this.#dependents.add(doc);
     }
     /**

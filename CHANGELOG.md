@@ -5,6 +5,7 @@
 ### Changed
 
 - Ranges from the AST will automatically be shifted to the correct position. You no longer have to call `addOffset` or equivalent methods anymore.
+- The type text for numbers is now more concise. Infinite bounds are now better represented - instead of `0..=∞`, it is now `0..`.
 
 ### Fixes
 
@@ -12,6 +13,8 @@
 - File dependencies are now properly managed.
   - Technical details: The `DocumentInfo` class has `dependencies` and `dependents` properties. These properties are used to keep track of which files depend on which files. Previously, all `DocumentInfo`s were fully cleared when parsing, which means that dependency information was lost. However, now, before clearing all `DocumentInfo`s, the URIs of the dependencies and dependents are added to a separate queue.
 - Fixed document errors retaining even after you edit the file.
+- Fixed a bug where errors, highlights, etc would be applied on the wrong document.
+  - Technical info: This was caused by the `Resolver` being called on the wrong document within `YArr`. On `YArr#runPostValidation`, the resolver wasn't being reset, which means that the resolver would still have the previous document's information. This was fixed by resetting the resolver before running post-validation.
 
 ## 1.9.4 - 2023-06-29
 

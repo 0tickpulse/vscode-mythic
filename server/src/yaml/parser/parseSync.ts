@@ -7,7 +7,7 @@ import { server } from "../../index.js";
 import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import { PATH_MAP } from "../schemaSystem/data.js";
 import { DocumentInfo } from "./documentInfo.js";
-import { info, warn } from "../../utils/logging.js";
+import { dbg, info, warn } from "../../utils/logging.js";
 
 class DocumentQueue {
     #items: TextDocument[] = [];
@@ -188,6 +188,10 @@ export function preParse(doc: TextDocument) {
 }
 
 export function postParse(doc: DocumentInfo) {
+    dbg("Parser", `Postparsing ${doc.uri}`, {
+        uri: doc.uri,
+        rawUri: doc.base.uri, // debug to make sure the uri is correct
+    });
     doc.schema.ifPresent((schema) => {
         const errors = schema.runPostValidation(doc, doc.yamlAst.contents!);
         errors.forEach((error) => {

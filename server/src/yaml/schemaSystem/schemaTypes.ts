@@ -319,6 +319,9 @@ export class YArr extends YamlSchema {
     override postValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         // traverse children
         const errors: SchemaValidationError[] = [];
+        if (this.itemSchema instanceof YMythicSkill) {
+            this.itemSchema.resolver = Optional.of(new Resolver(doc));
+        }
         isCollection(value) &&
             value.items.forEach((item) => {
                 const innerErrors = this.itemSchema.runPostValidation(doc, item as Node);
