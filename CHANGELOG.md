@@ -6,6 +6,7 @@
 
 - Ranges from the AST will automatically be shifted to the correct position. You no longer have to call `addOffset` or equivalent methods anymore.
 - The type text for numbers is now more concise. Infinite bounds are now better represented - instead of `0..=∞`, it is now `0..`.
+- The mob schema's `Type` is no longer required.
 
 ### Fixes
 

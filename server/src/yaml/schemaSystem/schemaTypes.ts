@@ -385,7 +385,7 @@ export class YObj extends YamlSchema {
             string,
             {
                 schema: YamlSchema;
-                required?: boolean;
+                required?: boolean | ((doc: DocumentInfo, value: Node) => boolean);
                 description?: string;
                 /**
                  * Conditions that must be met for this property to be valid.
@@ -449,7 +449,7 @@ export class YObj extends YamlSchema {
                         });
                     });
                 }
-            } else if (required) {
+            } else if (typeof required === "function" ? required(doc, value) : required) {
                 errors.push(new SchemaValidationError(this, `Missing required property "${key}"!`, doc, value));
             }
         }
