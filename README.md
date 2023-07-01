@@ -21,6 +21,7 @@
     - [Color decorations](#color-decorations)
   - [🚧 Planned](#-planned)
 - [🚩 Current Limitations](#-current-limitations)
+- [🛣️ Roadmap](#️-roadmap)
 - [📦 Installation](#-installation)
 - [📝 License](#-license)
 - [❤️ Credits and Acknowledgements](#️-credits-and-acknowledgements)
@@ -55,6 +56,12 @@ Below is a screenshot of item lore configuration (Credits: [@LcorpOfficial](http
 - The extension is not built with YAML aliases in mind. This might be changed in the future, but for now, they will lead to unexpected behavior.
 - The extension is meant to be used in one single workspace/server. It is not (yet?) possible to use it in multiple workspaces/servers at once.
 - The extension does not recognize submappings. This means that keys like `Options.B: 1` will be recognized as `Options.B` literally instead of `Options` and `B`.
+
+## 🛣️ Roadmap
+
+- [ ] Complete data set
+- [ ] Sublime Text port - this will require a rename of the extension
+- [ ] Autocompletions
 
 ## 📦 Installation
 
