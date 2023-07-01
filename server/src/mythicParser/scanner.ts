@@ -1,4 +1,3 @@
-import { Range } from "vscode-languageserver-textdocument";
 import { SyntaxError } from "../errors.js";
 import { CustomPosition, CustomRange, r } from "../utils/positionsAndRanges.js";
 import { DocumentInfo } from "../yaml/parser/documentInfo.js";
@@ -45,17 +44,12 @@ export class MythicToken {
         readonly doc: DocumentInfo,
         readonly source: string,
         readonly type: MythicTokenType,
-        readonly lexeme: string | undefined,
-        readonly literal: string | undefined,
+        readonly lexeme: string,
         readonly start: number,
         readonly current: number,
     ) {
         const lineLengths = doc.lineLengths;
         this.range = r(CustomPosition.fromOffset(lineLengths, this.start), CustomPosition.fromOffset(lineLengths, this.current));
-    }
-
-    toString() {
-        return `${this.type.padEnd(maxLength(Object.values(TOKEN_TYPE)))} ${this.lexeme} (${this.literal})`;
     }
 
     length() {
@@ -123,10 +117,10 @@ export class MythicScanner {
                 this.#start = this.#current;
                 this.scanToken();
             }
-            this.#tokens.push(new MythicToken(this.doc, this.#source, "Eof", "", "", this.#start, this.#current));
-            return { tokens: this.#tokens, errors: [], source: this.#source };
+            this.#tokens.push(new MythicToken(this.doc, this.#source, "Eof", "", this.#start, this.#current));
+            return { tokens: this.#tokens, errors: [], source: this.doc.source };
         } catch (e: unknown) {
-            return { errors: [e as SyntaxError], source: this.#source };
+            return { errors: [e as SyntaxError], source: this.doc.source };
         }
     }
 
@@ -148,7 +142,7 @@ export class MythicScanner {
         // closing "
         this.#advance();
         const value = this.#source.substring(this.#start + 1, this.#current - 1);
-        this.#addToken("String", value);
+        this.#addToken("String");
     }
 
     #isDigit(c: string): boolean {
@@ -166,7 +160,7 @@ export class MythicScanner {
             }
         }
         const value = this.#source.substring(this.#start, this.#current);
-        this.#addToken("Number", value);
+        this.#addToken("Number");
     }
 
     #identifier(): void {
@@ -205,9 +199,9 @@ export class MythicScanner {
         return this.#source.charAt(this.#current + 1);
     }
 
-    #addToken(type: MythicTokenType, literal?: string): void {
+    #addToken(type: MythicTokenType): void {
         const text = this.#source.substring(this.#start, this.#current);
-        this.#tokens.push(new MythicToken(this.doc, this.#source, type, text, literal, this.#start + this.initialOffset, this.#current + this.initialOffset));
+        this.#tokens.push(new MythicToken(this.doc, this.doc.source, type, text, this.#start + this.initialOffset, this.#current + this.initialOffset));
     }
 
     #getCurrentRange(): CustomRange {

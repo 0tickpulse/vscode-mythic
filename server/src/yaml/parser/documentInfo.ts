@@ -63,7 +63,20 @@ export class DocumentInfo {
         this.hovers.push(hover);
     }
     addError(error: Diagnostic) {
-        this.errors.push(error);
+        this.errors.push({
+            range: error.range,
+            message: error.message,
+            severity: error.severity,
+            source: error.source,
+            code: error.code,
+        });
+        // only have the necessary properties
+        // since typescript's type system is structural, any object with the same properties is considered the same type
+        // therefore, some undesirable properties might be present in the object
+        // this is especially significant given that the object will be serialized and sent over the network
+        // which leads to two problems:
+        // 1. unnecessary data is sent over the network
+        // 2. the object might not be serializable (e.g. if it contains cyclic references)
     }
     addHighlight(highlight: Highlight) {
         if (highlight.range.start.line === highlight.range.end.line) {

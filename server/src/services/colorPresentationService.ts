@@ -1,9 +1,9 @@
+import { Optional, deepEquals } from "tick-ts-utils";
 import { ColorPresentation, ColorPresentationParams } from "vscode-languageserver";
 import { globalData } from "../documentManager.js";
-import { dbg, logEvent } from "../utils/logging.js";
-import { filterMap } from "../utils/utils.js";
-import { Optional, deepEquals } from "tick-ts-utils";
+import { logEvent } from "../utils/logging.js";
 import { r } from "../utils/positionsAndRanges.js";
+import { filterMap } from "../utils/utils.js";
 
 export default ({ textDocument, color, range }: ColorPresentationParams): ColorPresentation[] => {
     logEvent("colorPresentationService", textDocument);

@@ -1,8 +1,8 @@
-import { Position, Range } from "vscode-languageserver-textdocument";
-import { MythicToken } from "./scanner.js";
-import { Parser } from "./parser.js";
-import { CustomPosition, CustomRange, r } from "../utils/positionsAndRanges.js";
 import { compare } from "tick-ts-utils";
+import { Position } from "vscode-languageserver-textdocument";
+import { CustomPosition, CustomRange, r } from "../utils/positionsAndRanges.js";
+import { Parser } from "./parser.js";
+import { MythicToken } from "./scanner.js";
 
 export abstract class Expr {
     constructor(readonly parser: Parser, readonly start: Position) {}
@@ -346,7 +346,6 @@ export class MlcValueExpr extends Expr {
         super(parser, start);
         this.range = r(this.start, this.#getEnd());
     }
-
     override printAST(): string {
         return `(MlcValue ${this.identifiers
             .map((id) => (id instanceof MlcPlaceholderExpr ? id.printAST() : id.map((j) => j.lexeme).join("")))
@@ -367,11 +366,11 @@ export class MlcValueExpr extends Expr {
         if (this.identifiers.length === 0) {
             return this.start;
         }
-        const last = this.identifiers[this.identifiers.length - 1];
+        const last = this.identifiers.at(-1);
         if (last instanceof MlcPlaceholderExpr) {
             return last.greaterThanBracket.range.end;
         }
-        if (last.length > 0) {
+        if (last && last.length > 0) {
             return last[last.length - 1].range.end;
         }
         return this.start;

@@ -1,11 +1,8 @@
-import { Range } from "vscode-languageserver-textdocument";
-import { MythicToken } from "./mythicParser/scanner.js";
-import { Expr, GenericStringExpr, MechanicExpr, MlcPlaceholderExpr, MlcValueExpr, SkillLineExpr } from "./mythicParser/parserExpressions.js";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver/node.js";
-import { getClosestTo } from "./utils/utils.js";
+import { MythicFieldType } from "./mythicData/types.js";
+import { Expr, MlcValueExpr, SkillLineExpr } from "./mythicParser/parserExpressions.js";
+import { MythicToken } from "./mythicParser/scanner.js";
 import { CustomRange } from "./utils/positionsAndRanges.js";
-import { getClosestMatch } from "./mythicData/services.js";
-import { MythicField, MythicFieldType } from "./mythicData/types.js";
 
 export class SyntaxError extends Error {
     #codeDescription: string | undefined;
@@ -51,17 +48,4 @@ export class ResolverError extends SyntaxError {
     }
 }
 
-export class UnknownMechanicResolverError extends ResolverError {
-    constructor(source: string, mechanic: MechanicExpr, skill?: SkillLineExpr) {
-        const value = mechanic.identifier.value();
-        let message = `Unknown mechanic '${value}'`;
-        const closest = getClosestMatch("mechanic", value);
-        if (closest !== undefined) {
-            message += `. Did you mean '${closest}'?`;
-        }
-        const range = mechanic.identifier.range;
-        super(source, message, mechanic, range, skill, 1);
-        this.setCodeDescription("unknown-mechanic");
-        this.setSeverity(DiagnosticSeverity.Error);
-    }
-}
+

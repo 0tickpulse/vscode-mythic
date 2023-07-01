@@ -724,12 +724,12 @@ export class YMythicSkill extends YamlSchema {
         const skillLine = source
             .substring(rangeOffset[0], rangeOffset[1])
             .split("\n")
-            .map((line, index) => {
-                if (index !== 0) {
-                    return line.substring(customRangeOffset.start.character);
-                }
-                return line;
-            })
+            // .map((line, index) => {
+            //     if (index !== 0) {
+            //         return line.substring(customRangeOffset.start.character);
+            //     }
+            //     return line;
+            // })
             .join("\n");
 
         const ast = getAst(doc, rangeOffset[0], skillLine);

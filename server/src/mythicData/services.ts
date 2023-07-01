@@ -1,19 +1,14 @@
-import { Optional, stripIndentation } from "tick-ts-utils";
-import { InvalidFieldValueError } from "../errors.js";
-import { MlcPlaceholderExpr, MlcValueExpr } from "../mythicParser/parserExpressions.js";
+import { Optional } from "tick-ts-utils";
+import { Hover } from "vscode-languageserver";
+import { globalData } from "../documentManager.js";
+import { FilterArrayKeyIncludes } from "../utils/types.js";
 import { getClosestTo, wrapInInlineCode } from "../utils/utils.js";
 import { compiledHovers, data, typedData } from "./data.js";
-import { globalData } from "../documentManager.js";
 import {
     MythicData,
     MythicField,
-    MythicFieldType,
-    MythicFieldTypeString,
-    MythicHolder,
+    MythicHolder
 } from "./types.js";
-import { ArrayIncludes, FilterArrayKeyIncludes } from "../utils/types.js";
-import { Hover } from "vscode-languageserver";
-import { CustomRange, r } from "../utils/positionsAndRanges.js";
 
 export type MechanicsAndAliases = typeof data.mechanic[number]["names"];
 export type ConditionsAndAliases = typeof data.condition[number]["names"];

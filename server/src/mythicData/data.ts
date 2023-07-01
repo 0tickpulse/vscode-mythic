@@ -1,5 +1,6 @@
 import { MythicData, MythicFieldTypeString, MythicHovers } from "./types.js";
 import { generateHover } from "./services.js";
+import { MFMythicSkill } from "./specialTypes/mythicSkillType.js";
 
 export const data = {
     mechanic: [
@@ -28,6 +29,17 @@ export const data = {
             names: ["variableSet"],
             description: "Sets a variable to a value.",
         },
+        {
+            names: ["skill"],
+            description: "Runs a skill.",
+            fields: [
+                {
+                    names: ["skill", "s"],
+                    description: "The skill to run.",
+                    type: new MFMythicSkill(),
+                }
+            ]
+        }
     ],
     condition: [],
     targeter: [],

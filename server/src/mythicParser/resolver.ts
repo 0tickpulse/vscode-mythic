@@ -1,18 +1,18 @@
 import { Color, Optional, stripIndentation } from "tick-ts-utils";
-import { Hover, SemanticTokenTypes } from "vscode-languageserver";
+import { DiagnosticSeverity, SemanticTokenTypes } from "vscode-languageserver";
 import { ColorHint, Highlight, SemanticTokenModifier } from "../colors.js";
-import { ResolverError, UnknownMechanicResolverError } from "../errors.js";
+import { ResolverError } from "../errors.js";
 import { VARIABLE_SCOPES } from "../mythicData/data.js";
 import {
     generateHover,
     generateHoverForField,
     getAllMechanicsAndAliases,
+    getClosestMatch,
     getHolderFieldFromName,
     getHolderFromName,
-
 } from "../mythicData/services.js";
 import { MythicHolder } from "../mythicData/types.js";
-import { CustomRange, r } from "../utils/positionsAndRanges.js";
+import { CustomRange } from "../utils/positionsAndRanges.js";
 import { todo } from "../utils/utils.js";
 import { Dependency, DocumentInfo, RangeLink } from "../yaml/parser/documentInfo.js";
 import {
@@ -47,7 +47,7 @@ export class Resolver extends ExprVisitor<void> {
         return this;
     }
     #addHighlight(range: CustomRange, color: SemanticTokenTypes, modifiers: SemanticTokenModifier[] = []) {
-        this.doc.addHighlight(new Highlight(range, color, modifiers))
+        this.doc.addHighlight(new Highlight(range, color, modifiers));
         return [color, modifiers] as const;
     }
     #addHighlightGenericString(genericString: GenericStringExpr, color: SemanticTokenTypes) {
@@ -157,7 +157,7 @@ export class Resolver extends ExprVisitor<void> {
                         continue;
                     }
                     const type = field.type;
-                    type.validate(this.doc, arg);
+                    type.validate(this.doc, arg).forEach((e) => e.accept(this));
                 }
             });
 
@@ -375,5 +375,19 @@ export class Resolver extends ExprVisitor<void> {
                 return (value as MythicToken[]).map((token) => token.lexeme).join("");
             })
             .join("");
+    }
+}
+export class UnknownMechanicResolverError extends ResolverError {
+    constructor(source: string, mechanic: MechanicExpr, skill?: SkillLineExpr) {
+        const value = mechanic.identifier.value();
+        let message = `Unknown mechanic '${value}'`;
+        const closest = getClosestMatch("mechanic", value);
+        if (closest !== undefined) {
+            message += `. Did you mean '${closest}'?`;
+        }
+        const range = mechanic.identifier.range;
+        super(source, message, mechanic, range, skill, 1);
+        this.setCodeDescription("unknown-mechanic");
+        this.setSeverity(DiagnosticSeverity.Error);
     }
 }

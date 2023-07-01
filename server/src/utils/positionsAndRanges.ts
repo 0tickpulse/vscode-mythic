@@ -96,12 +96,8 @@ export class CustomRange implements DeepEquals {
         return this.start.equals(other.start) && this.end.equals(other.end);
     }
     getFrom(source: string) {
-        const lines = source.split("\n");
-        let result = "";
-        for (let i = this.start.line; i <= this.end.line; i++) {
-            result += lines[i] + "\n";
-        }
-        return result;
+        const lineLengths = source.split("\n").map((line) => line.length);
+        return source.substring(this.start.toOffset(lineLengths), this.end.toOffset(lineLengths));
     }
     withStart(start: CustomPosition) {
         return new CustomRange(start, this.end);

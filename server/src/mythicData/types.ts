@@ -1,8 +1,8 @@
-import { Diagnostic, Hover } from "vscode-languageserver";
-import { RangeLink, DocumentInfo } from "../yaml/parser/documentInfo.js";
-import { CustomRange } from "../utils/positionsAndRanges.js";
-import { MlcValueExpr } from "../mythicParser/parserExpressions.js";
 import { Optional } from "tick-ts-utils";
+import { Diagnostic, Hover } from "vscode-languageserver";
+import { Expr, MlcValueExpr } from "../mythicParser/parserExpressions.js";
+import { CustomRange } from "../utils/positionsAndRanges.js";
+import { DocumentInfo } from "../yaml/parser/documentInfo.js";
 
 export type MythicHolderType = "mechanic" | "condition" | "targeter";
 
@@ -46,14 +46,21 @@ export type PluginRequirement = "MythicMobs Premium" | "ModelEngine" | "MMOCore"
 
 export class MythicFieldType {
     name?: string;
-    validate(doc: DocumentInfo, value: MlcValueExpr): void {
-        // do nothing. should be overridden
+    /**
+     * Validates the value of a field.
+     * Returns an array of Exprs that should be visited.
+     */
+    validate(doc: DocumentInfo, value: MlcValueExpr): Expr[] {
+        return [];
     }
     get typeText() {
         return this.name ?? this.rawTypeText;
     }
     get rawTypeText() {
         return "unknown";
+    }
+    setName(name: string) {
+        this.name = name;
     }
 }
 
@@ -68,7 +75,7 @@ export class MythicFieldTypeString extends MythicFieldType {
         super();
         this.literal = Optional.of(literal);
     }
-    validate(doc: DocumentInfo, value: MlcValueExpr): void {
+    validate(doc: DocumentInfo, value: MlcValueExpr): Expr[] {
         const str = value.getSource();
         this.literal.ifPresent((literal) => {
             if (this.caseSensitive) {
@@ -81,5 +88,6 @@ export class MythicFieldTypeString extends MythicFieldType {
                 }
             }
         });
+        return [];
     }
 }
