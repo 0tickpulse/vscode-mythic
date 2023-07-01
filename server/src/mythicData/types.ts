@@ -1,7 +1,8 @@
-import { Hover } from "vscode-languageserver";
+import { Diagnostic, Hover } from "vscode-languageserver";
 import { RangeLink, DocumentInfo } from "../yaml/parser/documentInfo.js";
 import { CustomRange } from "../utils/positionsAndRanges.js";
 import { MlcValueExpr } from "../mythicParser/parserExpressions.js";
+import { Optional } from "tick-ts-utils";
 
 export type MythicHolderType = "mechanic" | "condition" | "targeter";
 
@@ -44,13 +45,41 @@ export type Example = {
 export type PluginRequirement = "MythicMobs Premium" | "ModelEngine" | "MMOCore" | "MMOItems" | "MythicEnchants" | "MythicAchievements";
 
 export class MythicFieldType {
-    validate(value: MlcValueExpr): void {
+    name?: string;
+    validate(doc: DocumentInfo, value: MlcValueExpr): void {
         // do nothing. should be overridden
+    }
+    get typeText() {
+        return this.name ?? this.rawTypeText;
+    }
+    get rawTypeText() {
+        return "unknown";
     }
 }
 
-export class MythicFieldTypeString {
-    validate(value: MlcValueExpr): void {
-        // do nothing. is always valid
+export class InvalidFieldValueError implements Diagnostic {
+    constructor(public message: string, public value: MlcValueExpr, public range: CustomRange = value.range) {}
+    code = 0;
+}
+
+export class MythicFieldTypeString extends MythicFieldType {
+    literal: Optional<string>;
+    constructor(literal?: string, public caseSensitive = false) {
+        super();
+        this.literal = Optional.of(literal);
+    }
+    validate(doc: DocumentInfo, value: MlcValueExpr): void {
+        const str = value.getSource();
+        this.literal.ifPresent((literal) => {
+            if (this.caseSensitive) {
+                if (str !== literal) {
+                    doc.addError(new InvalidFieldValueError(`Expected ${literal}, got ${str}`, value));
+                }
+            } else {
+                if (str.toLowerCase() !== literal.toLowerCase()) {
+                    doc.addError(new InvalidFieldValueError(`Expected ${literal}, got ${str}`, value));
+                }
+            }
+        });
     }
 }
