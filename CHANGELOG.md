@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Ranges from the AST will automatically be shifted to the correct position. You no longer have to call `addOffset` or equivalent methods anymore.
+
 ### Fixes
 
 - File dependencies are now properly managed.
