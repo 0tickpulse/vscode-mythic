@@ -1,6 +1,7 @@
 import { Hover } from "vscode-languageserver";
 import { RangeLink, DocumentInfo } from "../yaml/parser/documentInfo.js";
 import { CustomRange } from "../utils/positionsAndRanges.js";
+import { MlcValueExpr } from "../mythicParser/parserExpressions.js";
 
 export type MythicHolderType = "mechanic" | "condition" | "targeter";
 
@@ -42,110 +43,14 @@ export type Example = {
 
 export type PluginRequirement = "MythicMobs Premium" | "ModelEngine" | "MMOCore" | "MMOItems" | "MythicEnchants" | "MythicAchievements";
 
-// export type MythicFieldType =
-//     | {
-//           type: "string";
-//       }
-//     | {
-//           type: "array";
-//           items: MythicFieldType;
-//       }
-//     | {
-//           type: "number";
-//           lowerBound?: number;
-//           upperBound?: number;
-//       }
-//     | {
-//           type: "boolean";
-//       }
-//     | {
-//           type: "enum";
-//           values: string[];
-//       }
-//     | {
-//           type: "inlineSkill";
-//       }
-//     | {
-//           type: "inlineItem";
-//       }
-//     | {
-//           type: "mythicTargeter";
-//       }
-//     | {
-//           type: "inlineCondition";
-//       }
-//     | {
-//           type: "potion";
-//       }
-//     | {
-//           type: "mythicMob";
-//       };
+export class MythicFieldType {
+    validate(value: MlcValueExpr): void {
+        // do nothing. should be overridden
+    }
+}
 
-// convert all the above to individual types
-
-export type MythicFieldType =
-    | MythicFieldTypeString
-    | MythicFieldTypeArray
-    | MythicFieldTypeNumber
-    | MythicFieldTypeBoolean
-    | MythicFieldTypeEnum
-    | MythicFieldTypeInlineSkill
-    | MythicFieldTypeInlineItem
-    | MythicFieldTypeMythicTargeter
-    | MythicFieldTypeInlineCondition
-    | MythicFieldTypePotion
-    | MythicFieldTypeEnchantment
-    | MythicFieldTypeMythicMob;
-
-export type MythicFieldTypeString = {
-    type: "string";
-};
-
-export type MythicFieldTypeArray = {
-    type: "array";
-    items: MythicFieldType;
-};
-
-export type MythicFieldTypeNumber = {
-    type: "number";
-
-    lowerBound?: number;
-    upperBound?: number;
-};
-
-export type MythicFieldTypeBoolean = {
-    type: "boolean";
-};
-
-export type MythicFieldTypeEnum = {
-    type: "enum";
-    values: string[];
-};
-
-export type MythicFieldTypeInlineSkill = {
-    type: "inlineSkill";
-};
-
-export type MythicFieldTypeInlineItem = {
-    type: "inlineItem";
-};
-
-export type MythicFieldTypeMythicTargeter = {
-    type: "mythicTargeter";
-};
-
-export type MythicFieldTypeInlineCondition = {
-    type: "inlineCondition";
-};
-
-export type MythicFieldTypePotion = {
-    type: "potion";
-};
-
-export type MythicFieldTypeEnchantment = {
-    type: "enchantment";
-};
-
-export type MythicFieldTypeMythicMob = {
-    type: "mythicMob";
-};
+export class MythicFieldTypeString {
+    validate(value: MlcValueExpr): void {
+        // do nothing. is always valid
+    }
+}

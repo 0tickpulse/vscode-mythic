@@ -1,7 +1,7 @@
-import { MythicData, MythicHovers } from "./types.js";
+import { MythicData, MythicFieldTypeString, MythicHovers } from "./types.js";
 import { generateHover } from "./services.js";
 
-export const data = ({
+export const data = {
     mechanic: [
         {
             names: ["message", "msg", "m"],
@@ -10,17 +10,15 @@ export const data = ({
                 {
                     names: ["message", "msg", "m"],
                     description: "The message to send.",
-                    type: {
-                        type: "string"
-                    }
-                }
+                    type: new MythicFieldTypeString(),
+                },
             ],
             examples: [
                 {
                     text: "message{m=You have <target.health> health left.} @Target",
-                    explanation: "Sends a message to the target entity with their health."
-                }
-            ]
+                    explanation: "Sends a message to the target entity with their health.",
+                },
+            ],
         },
         {
             names: ["orbital", "o"],
@@ -29,11 +27,11 @@ export const data = ({
         {
             names: ["variableSet"],
             description: "Sets a variable to a value.",
-        }
+        },
     ],
     condition: [],
     targeter: [],
-}) satisfies MythicData;
+} satisfies MythicData;
 
 export const typedData: MythicData = data as MythicData;
 

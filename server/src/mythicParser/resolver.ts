@@ -9,7 +9,7 @@ import {
     getAllMechanicsAndAliases,
     getHolderFieldFromName,
     getHolderFromName,
-    validate,
+
 } from "../mythicData/services.js";
 import { MythicHolder } from "../mythicData/types.js";
 import { CustomRange, r } from "../utils/positionsAndRanges.js";
@@ -197,20 +197,12 @@ export class Resolver extends ExprVisitor<void> {
                     if (arg.identifiers.some((value) => value instanceof MlcPlaceholderExpr)) {
                         continue;
                     }
-                    const value = arg.identifiers.map((value) => (value as MythicToken[]).map((token) => token.lexeme)).join("");
                     const field = getHolderFieldFromName(mechanicData.get(), key).otherwise(undefined);
                     if (field === undefined) {
                         continue;
                     }
                     const type = field.type;
-                    const validationResults = validate(type, arg);
-                    if (validationResults.length > 0) {
-                        this.#addError(
-                            `Invalid value '${value}' for field '${key}' of mechanic '${mechanicName}'. ${validationResults.join(" ")}`,
-                            arg,
-                            arg.range,
-                        );
-                    }
+                    type.validate(arg);
                 }
             });
 
