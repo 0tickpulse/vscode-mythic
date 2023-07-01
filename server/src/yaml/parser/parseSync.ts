@@ -105,32 +105,24 @@ export function scheduleParse() {
                 info("Parser", `Postparsed ${doc.uri} (${documentInfo.errors.length} errors) in ${duration}ms`);
                 diagnostics.set(doc.uri, documentInfo.errors);
             };
+            const addDependents = (doc: TextDocument) => {
+                const documentInfo = globalData.documents.getDocument(doc.uri);
+                if (documentInfo === undefined) {
+                    warn("Parser", `Document ${doc.uri} was not parsed!`);
+                    return;
+                }
+                documentInfo.traverseDependents(({ doc }) => {
+                    DEP_QUEUE.add(doc.base);
+                });
+            }
             // TODO: perhaps reduce the amount of loops here
             PARTIAL_PARSE_QUEUE.forEach(flushDoc);
             PARTIAL_PARSE_QUEUE.forEach(pre);
-            FULL_PARSE_QUEUE.forEach((doc) => {
-                const documentInfo = globalData.documents.getDocument(doc.uri);
-                if (documentInfo === undefined) {
-                    warn("Parser", `Document ${doc.uri} was not parsed!`);
-                    return;
-                }
-                documentInfo.traverseDependents(({ doc }) => {
-                    DEP_QUEUE.add(doc.base);
-                });
-            });
+            FULL_PARSE_QUEUE.forEach(addDependents);
             FULL_PARSE_QUEUE.forEach(flushDoc);
             FULL_PARSE_QUEUE.forEach(pre);
             FULL_PARSE_QUEUE.forEach(post);
-            FULL_PARSE_QUEUE.forEach((doc) => {
-                const documentInfo = globalData.documents.getDocument(doc.uri);
-                if (documentInfo === undefined) {
-                    warn("Parser", `Document ${doc.uri} was not parsed!`);
-                    return;
-                }
-                documentInfo.traverseDependents(({ doc }) => {
-                    DEP_QUEUE.add(doc.base);
-                });
-            });
+            FULL_PARSE_QUEUE.forEach(addDependents);
             DEP_QUEUE.forEach((doc) => {
                 info("Parser", `Parsing dependent ${doc.uri}`);
             })

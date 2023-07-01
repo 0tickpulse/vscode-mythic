@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- File dependencies are now properly managed.
+  - Technical details: The `DocumentInfo` class has `dependencies` and `dependents` properties. These properties are used to keep track of which files depend on which files. Previously, all `DocumentInfo`s were fully cleared when parsing, which means that dependency information was lost. However, now, before clearing all `DocumentInfo`s, the URIs of the dependencies and dependents are added to a separate queue.
 - Fixed document errors retaining even after you edit the file.
 
 ## 1.9.4 - 2023-06-29
