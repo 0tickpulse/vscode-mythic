@@ -9,9 +9,7 @@ function fmtLog(str: string, color: Color) {
     const now = Date.now();
     const diff = now - prevTime;
     prevTime = now;
-    const res = `[${new Date().toLocaleTimeString()}] ` + color.toAnsiColorCode() + str + codes.reset + ` (${diff}ms)`;
-    appendFile("/Users/tick/coding/tick/vscode-mythic/server.log", res + "\n", () => {}); // TODO remove. This is temporary for debugging.
-    return res;
+    return `[${ new Date().toLocaleTimeString() }] ` + color.toAnsiColorCode() + str + codes.reset + ` (${ diff }ms)`;
 }
 
 export function info<T extends unknown[]>(prefix = "Mythic Language Server", ...args: T): T {
