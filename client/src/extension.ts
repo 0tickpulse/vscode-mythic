@@ -1,9 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 
 import { join } from "path";
-import { ExtensionContext, StatusBarItem, languages, window, workspace } from "vscode";
+import { ExtensionContext, StatusBarItem, window } from "vscode";
 import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node.js";
-import { URI } from "vscode-uri";
 
 let client: LanguageClient;
 
@@ -35,9 +34,6 @@ export async function activate(context: ExtensionContext) {
             },
         ],
     };
-
-    // log the command that is being run
-    log(`Starting server with command: ${serverOptions.run?.module}`);
 
     const status = window.createStatusBarItem();
     fullParseDefaultStatus(status);

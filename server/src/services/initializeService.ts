@@ -7,8 +7,10 @@ import { isMythicFile, recursive_search as recursiveScanDir } from "../utils/fs.
 import { join } from "path";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { readFile } from "fs/promises";
+import { logEvent } from "../utils/logging.js";
 
 export default async (params: InitializeParams): Promise<InitializeResult> => {
+    logEvent("initializeService", { uri: "" });
     server.data.documents.manager.all().forEach((doc) => queuePartial(doc));
 
     const workspace = params.workspaceFolders;

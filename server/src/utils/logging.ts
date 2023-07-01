@@ -1,3 +1,4 @@
+import { appendFile } from "fs";
 import { Color, codes } from "tick-ts-utils";
 import { format } from "util";
 import { TextDocumentIdentifier } from "vscode-languageserver";
@@ -8,7 +9,9 @@ function fmtLog(str: string, color: Color) {
     const now = Date.now();
     const diff = now - prevTime;
     prevTime = now;
-    return `[${new Date().toLocaleTimeString()}] ` + color.toAnsiColorCode() + str + codes.reset + ` (${diff}ms)`;
+    const res = `[${new Date().toLocaleTimeString()}] ` + color.toAnsiColorCode() + str + codes.reset + ` (${diff}ms)`;
+    appendFile("/Users/tick/coding/tick/vscode-mythic/server.log", res + "\n", () => {}); // TODO remove. This is temporary for debugging.
+    return res;
 }
 
 export function info<T extends unknown[]>(prefix = "Mythic Language Server", ...args: T): T {

@@ -14,7 +14,7 @@ import {
 import { MythicHolder } from "../mythicData/types.js";
 import { CustomRange, r } from "../utils/positionsAndRanges.js";
 import { todo } from "../utils/utils.js";
-import { DocumentInfo, RangeLink } from "../yaml/parser/documentInfo.js";
+import { Dependency, DocumentInfo, RangeLink } from "../yaml/parser/documentInfo.js";
 import {
     Expr,
     ExprVisitor,
@@ -153,7 +153,7 @@ export class Resolver extends ExprVisitor<void> {
                 });
                 if (data.definition) {
                     this.#gotoDefinitions.push(new RangeLink(mechanic.getNameRange(), data.definition.range, data.definition.doc));
-                    this.#doc?.addDependency(data.definition.doc);
+                    this.#doc?.addDependency(new Dependency(data.definition.doc));
                     nameHighlight[1].push("mutable");
                 } else {
                     nameHighlight[1].push("defaultLibrary");

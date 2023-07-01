@@ -1,8 +1,9 @@
 import { TextDocuments } from "vscode-languageserver/node.js";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { DocumentInfo } from "./yaml/parser/documentInfo.js";
+import { Dependency, DocumentInfo } from "./yaml/parser/documentInfo.js";
 import { CachedMythicSkill } from "./mythicModels.js";
 import { warn } from "./utils/logging.js";
+import { Graph } from "./utils/graph.js";
 
 export const FILE_EXTENSIONS = [".yml", ".yaml", ".mythic"];
 
@@ -28,11 +29,11 @@ export const globalData = {
         skills: {
             map: new Map<string, CachedMythicSkill[]>(),
             add(skill: CachedMythicSkill) {
-                const skills = this.map.get(skill.path.base.uri);
+                const skills = this.map.get(skill.doc.base.uri);
                 if (skills) {
                     skills.push(skill);
                 } else {
-                    this.map.set(skill.path.base.uri, [skill]);
+                    this.map.set(skill.doc.base.uri, [skill]);
                 }
             },
             all() {

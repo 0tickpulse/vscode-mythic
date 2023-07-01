@@ -1,24 +1,22 @@
-import { ProposedFeatures, SemanticTokenTypes, createConnection } from "vscode-languageserver/node.js";
+import { ProposedFeatures, createConnection } from "vscode-languageserver/node.js";
 import { globalData } from "./documentManager.js";
-import didChangeContentService from "./services/didChangeContentService.js";
-import initializeService from "./services/initializeService.js";
-import { hover } from "./services/hoverService.js";
-import semanticTokensService from "./services/semanticTokensService.js";
-import { stripIndentation } from "tick-ts-utils";
-import { scheduleParse } from "./yaml/parser/parseSync.js";
-import definitionService from "./services/definitionService.js";
-import referenceService from "./services/referenceService.js";
-import completionService from "./services/completionService.js";
-import documentColorService from "./services/documentColorService.js";
 import colorPresentationService from "./services/colorPresentationService.js";
 import completionResolveService from "./services/completionResolveService.js";
-import { dbg, info } from "./utils/logging.js";
-import { writeFileSync } from "fs";
+import completionService from "./services/completionService.js";
+import definitionService from "./services/definitionService.js";
+import didChangeContentService from "./services/didChangeContentService.js";
+import documentColorService from "./services/documentColorService.js";
+import { hover } from "./services/hoverService.js";
+import initializeService from "./services/initializeService.js";
+import referenceService from "./services/referenceService.js";
+import semanticTokensService from "./services/semanticTokensService.js";
+import { info } from "./utils/logging.js";
+import { stdin, stdout } from "process";
 
-process.argv.push("--node-ipc");
+const connectionType = process.argv.includes("--stdio") ? "stdio" : "ipc";
 
 export const server = {
-    connection: createConnection(ProposedFeatures.all),
+    connection: connectionType === "stdio" ? createConnection(process.stdin, process.stdout) : createConnection(ProposedFeatures.all),
     data: globalData,
 };
 
@@ -29,6 +27,10 @@ function main() {
             documents: { manager },
         },
     } = server;
+    info(undefined, "Starting server...");
+    info(undefined, `Node Version: ${process.version}`);
+    info(undefined, `Command: ${process.argv.join(" ")}`);
+    info(undefined, `Connection type: ${connectionType}`)
     connection.listen();
     connection.onInitialize(initializeService);
     connection.onHover(hover);
@@ -45,6 +47,5 @@ function main() {
 }
 
 if (require.main === module) {
-    info(undefined, "Starting server...");
     main();
 }

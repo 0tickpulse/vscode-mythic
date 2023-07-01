@@ -1,17 +1,17 @@
 import { Node } from "yaml";
-import { DocumentInfo } from "./yaml/parser/documentInfo.js";
+import { Dependency, DocumentInfo } from "./yaml/parser/documentInfo.js";
 import { CustomRange } from "./utils/positionsAndRanges.js";
 
 /**
  * Represents a cached Mythic Skill.
  */
-export class CachedMythicSkill {
+export class CachedMythicSkill extends Dependency {
     public readonly description: string;
     constructor(
         /**
          * The path to the file containing the skill.
          */
-        public readonly path: DocumentInfo,
+        public readonly doc: DocumentInfo,
         /**
          * The YAML AST of the skill, as a tuple of the key and the value.
          */
@@ -22,6 +22,7 @@ export class CachedMythicSkill {
          */
         public readonly name: string,
     ) {
+        super(doc);
         const key = node[0];
         const comment = key.commentBefore ?? undefined;
         // FORMAT

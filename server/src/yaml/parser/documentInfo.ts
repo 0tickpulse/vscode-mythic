@@ -7,6 +7,7 @@ import { CustomPosition, CustomRange, r } from "../../utils/positionsAndRanges.j
 import { YamlSchema } from "../schemaSystem/schemaTypes.js";
 import { URI } from "vscode-uri";
 import { globalData } from "../../documentManager.js";
+import { info } from "console";
 
 /**
  * Describes a link between two ranges in two documents.
@@ -17,6 +18,10 @@ export class RangeLink {
     toString() {
         return `RangeLink(${this.fromRange} -> ${this.targetDoc} ${this.targetRange})`;
     }
+}
+
+export class Dependency {
+    constructor(public doc: DocumentInfo) {}
 }
 
 export class DocumentInfo {
@@ -31,15 +36,25 @@ export class DocumentInfo {
     gotoReferences: RangeLink[] = [];
     colorHints: ColorHint[] = [];
     lineLengths: number[];
-    #dependencies: Set<string> = new Set();
-    #dependents: Set<string> = new Set();
+    #dependencies: Set<Dependency> = new Set();
+    #dependents: Set<Dependency> = new Set();
     autoCompletions: CompletionItem[] = [];
-    constructor(public base: TextDocument, public yamlAst: Document = parseDocument(base.getText(), { keepSourceTokens: true }), hovers?: Hover[], schema?: YamlSchema, errors?: Diagnostic[]) {
+    uri: string;
+    dependency: Dependency;
+    constructor(
+        public base: TextDocument,
+        public yamlAst: Document = parseDocument(base.getText(), { keepSourceTokens: true }),
+        hovers?: Hover[],
+        schema?: YamlSchema,
+        errors?: Diagnostic[],
+    ) {
         this.source = base.getText();
+        this.uri = base.uri;
         this.hovers = hovers ?? [];
         this.schema = Optional.of(schema);
         this.errors = errors ?? [];
         this.lineLengths = this.source.split("\n").map((line) => line.length);
+        this.dependency = new Dependency(this);
     }
     setSchema(schema: YamlSchema) {
         this.schema = Optional.of(schema);
@@ -76,36 +91,26 @@ export class DocumentInfo {
     getHoversAt(position: CustomPosition): Hover[] {
         return this.hovers.filter((hover) => r(hover.range!).contains(position));
     }
-    removeAllHighlights() {
-        this.highlights = [];
-    }
     toString() {
         return `DocumentInfo(${this.base.uri})`;
     }
     fmt() {
         return URI.parse(this.base.uri).fsPath;
     }
-    addDependency(doc: string | DocumentInfo) {
-        if (typeof doc === "string") {
-            this.#dependencies.add(doc);
-            const docInfo = globalData.documents.getDocument(doc);
-            docInfo && docInfo.addDependent(this);
-        } else {
-            this.#dependencies.add(doc.base.uri);
-            doc.addDependent(this);
-        }
+    addDependency(doc: Dependency) {
+        this.#dependencies.add(doc);
+        const docInfo = globalData.documents.getDocument(doc.doc.uri);
+        info("DocumentInfo", `Dep ${doc.doc.uri} --> ${this.uri}`)
+        docInfo && docInfo.addDependent(this.dependency);
     }
     /**
      * Adds a dependent document. Do not call this method directly, use `addDependency` instead.
      *
      * @param doc The dependent document.
      */
-    addDependent(doc: string | DocumentInfo) {
-        if (typeof doc === "string") {
-            this.#dependents.add(doc);
-        } else {
-            this.#dependents.add(doc.base.uri);
-        }
+    addDependent(doc: Dependency) {
+        info("DocumentInfo", `Dep ${this.uri} <-- ${doc.doc.uri}`)
+        this.#dependents.add(doc);
     }
     /**
      * Traverse all dependencies of this document. If those documents have dependencies, they will be traversed as well, and so on recursively.
@@ -114,21 +119,18 @@ export class DocumentInfo {
      *
      * @param callback The callback to call for each document.
      */
-    traverseDependencies(callback: (doc: DocumentInfo) => void) {
+    traverseDependencies(callback: (doc: Dependency) => void) {
         const visited = new Set<string>();
         const queue = [...this.#dependencies];
         while (queue.length > 0) {
-            const uri = queue.shift()!;
-            if (visited.has(uri)) {
+            const dependency = queue.shift()!;
+            if (visited.has(dependency.doc.uri)) {
                 continue;
             }
-            visited.add(uri);
-            const doc = globalData.documents.getDocument(uri);
-            if (!doc) {
-                continue;
-            }
-            callback(doc);
-            queue.push(...doc.#dependencies);
+            visited.add(dependency.doc.uri);
+            callback(dependency);
+            const doc = globalData.documents.getDocument(dependency.doc.uri);
+            doc && queue.push(...doc.#dependencies);
         }
     }
     /**
@@ -138,21 +140,20 @@ export class DocumentInfo {
      *
      * @param callback The callback to call for each document.
      */
-    traverseDependents(callback: (doc: DocumentInfo) => void) {
+    traverseDependents(callback: (doc: Dependency) => void) {
         const visited = new Set<string>();
         const queue = [...this.#dependents];
+        info("DocumentInfo", `Traversing at least ${queue.length} dependents of ${this.uri}`)
         while (queue.length > 0) {
-            const uri = queue.shift()!;
-            if (visited.has(uri)) {
+            const dependency = queue.shift()!;
+            if (visited.has(dependency.doc.uri)) {
                 continue;
             }
-            visited.add(uri);
-            const doc = globalData.documents.getDocument(uri);
-            if (!doc) {
-                continue;
-            }
-            callback(doc);
-            queue.push(...doc.#dependents);
+            visited.add(dependency.doc.uri);
+            info("DocumentInfo", `Traversing dependents of ${this.uri}: ${dependency.doc.uri}`)
+            callback(dependency);
+            const doc = globalData.documents.getDocument(dependency.doc.uri);
+            doc && queue.push(...doc.#dependents);
         }
     }
 }

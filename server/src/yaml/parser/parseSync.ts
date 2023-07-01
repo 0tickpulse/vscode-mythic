@@ -73,6 +73,7 @@ export function scheduleParse() {
     scheduledParse.ifPresent(clearTimeout);
     scheduledParse = Optional.of(
         setTimeout(() => {
+            const DEP_QUEUE = new DocumentQueue();
             if (PARTIAL_PARSE_QUEUE.size === 0 && FULL_PARSE_QUEUE.size === 0) {
                 warn("Parser", "No documents to parse - skipping...");
                 return;
@@ -107,9 +108,35 @@ export function scheduleParse() {
             // TODO: perhaps reduce the amount of loops here
             PARTIAL_PARSE_QUEUE.forEach(flushDoc);
             PARTIAL_PARSE_QUEUE.forEach(pre);
+            FULL_PARSE_QUEUE.forEach((doc) => {
+                const documentInfo = globalData.documents.getDocument(doc.uri);
+                if (documentInfo === undefined) {
+                    warn("Parser", `Document ${doc.uri} was not parsed!`);
+                    return;
+                }
+                documentInfo.traverseDependents(({ doc }) => {
+                    DEP_QUEUE.add(doc.base);
+                });
+            });
             FULL_PARSE_QUEUE.forEach(flushDoc);
             FULL_PARSE_QUEUE.forEach(pre);
             FULL_PARSE_QUEUE.forEach(post);
+            FULL_PARSE_QUEUE.forEach((doc) => {
+                const documentInfo = globalData.documents.getDocument(doc.uri);
+                if (documentInfo === undefined) {
+                    warn("Parser", `Document ${doc.uri} was not parsed!`);
+                    return;
+                }
+                documentInfo.traverseDependents(({ doc }) => {
+                    DEP_QUEUE.add(doc.base);
+                });
+            });
+            DEP_QUEUE.forEach((doc) => {
+                info("Parser", `Parsing dependent ${doc.uri}`);
+            })
+            DEP_QUEUE.forEach(flushDoc);
+            DEP_QUEUE.forEach(pre);
+            DEP_QUEUE.forEach(post);
             // clear diagnostics
             diagnostics.forEach((diagnostics, uri) => {
                 if (diagnostics.length === 0) {
@@ -121,6 +148,7 @@ export function scheduleParse() {
             });
             PARTIAL_PARSE_QUEUE.clear();
             FULL_PARSE_QUEUE.clear();
+            DEP_QUEUE.clear();
             info("Parser", `Finished parsing! Requesting semantic token refresh...`);
             // server.connection.languages.semanticTokens.refresh();
         }, FULL_PARSE_QUEUE.size * 10),
