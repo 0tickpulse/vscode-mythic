@@ -31,6 +31,9 @@ class DocumentQueue {
     forEach(callback: (doc: TextDocument) => void) {
         this.#items.forEach(callback);
     }
+    remove(doc: TextDocument) {
+        this.#items = this.#items.filter((item) => item.uri !== doc.uri);
+    }
 }
 
 export const PARTIAL_PARSE_QUEUE = new DocumentQueue();
@@ -73,7 +76,6 @@ export function scheduleParse() {
     scheduledParse.ifPresent(clearTimeout);
     scheduledParse = Optional.of(
         setTimeout(() => {
-            const DEP_QUEUE = new DocumentQueue();
             if (PARTIAL_PARSE_QUEUE.size === 0 && FULL_PARSE_QUEUE.size === 0) {
                 warn("Parser", "No documents to parse - skipping...");
                 return;
@@ -95,15 +97,17 @@ export function scheduleParse() {
                 info("Parser", `Preparsed ${doc.uri} (${documentInfo.errors.length} errors) in ${duration}ms`);
                 diagnostics.set(doc.uri, documentInfo.errors);
             };
-            const post = (doc: TextDocument) => {
+            const postAndClear = (doc: TextDocument) => {
                 info("Parser", `Postparsing ${doc.uri}`);
                 const start = Date.now();
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we just set it in the previous closure
                 const documentInfo = postParse(globalData.documents.getDocument(doc.uri)!);
                 globalData.documents.set(documentInfo);
                 const duration = Date.now() - start;
+                addDependents(doc);
                 info("Parser", `Postparsed ${doc.uri} (${documentInfo.errors.length} errors) in ${duration}ms`);
                 diagnostics.set(doc.uri, documentInfo.errors);
+                FULL_PARSE_QUEUE.remove(doc);
             };
             const addDependents = (doc: TextDocument) => {
                 const documentInfo = globalData.documents.getDocument(doc.uri);
@@ -112,23 +116,18 @@ export function scheduleParse() {
                     return;
                 }
                 documentInfo.traverseDependents(({ doc }) => {
-                    DEP_QUEUE.add(doc.base);
+                    FULL_PARSE_QUEUE.add(doc.base);
                 });
-            }
+            };
             // TODO: perhaps reduce the amount of loops here
             PARTIAL_PARSE_QUEUE.forEach(flushDoc);
             PARTIAL_PARSE_QUEUE.forEach(pre);
             FULL_PARSE_QUEUE.forEach(addDependents);
-            FULL_PARSE_QUEUE.forEach(flushDoc);
-            FULL_PARSE_QUEUE.forEach(pre);
-            FULL_PARSE_QUEUE.forEach(post);
-            FULL_PARSE_QUEUE.forEach(addDependents);
-            DEP_QUEUE.forEach((doc) => {
-                info("Parser", `Parsing dependent ${doc.uri}`);
-            })
-            DEP_QUEUE.forEach(flushDoc);
-            DEP_QUEUE.forEach(pre);
-            DEP_QUEUE.forEach(post);
+            while (FULL_PARSE_QUEUE.size > 0) {
+                FULL_PARSE_QUEUE.forEach(flushDoc);
+                FULL_PARSE_QUEUE.forEach(pre);
+                FULL_PARSE_QUEUE.forEach(postAndClear);
+            }
             // clear diagnostics
             diagnostics.forEach((diagnostics, uri) => {
                 if (diagnostics.length === 0) {
@@ -140,7 +139,6 @@ export function scheduleParse() {
             });
             PARTIAL_PARSE_QUEUE.clear();
             FULL_PARSE_QUEUE.clear();
-            DEP_QUEUE.clear();
             info("Parser", `Finished parsing! Requesting semantic token refresh...`);
             // server.connection.languages.semanticTokens.refresh();
         }, FULL_PARSE_QUEUE.size * 10),
