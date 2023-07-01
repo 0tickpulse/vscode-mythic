@@ -262,8 +262,8 @@ export class YNum extends YamlSchema {
     get rawTypeText() {
         let res = this.isInteger ? "integer" : "number";
         if (this.lowerBound !== undefined || this.upperBound !== undefined) {
-            res += `(${this.lowerBound?.toString() ?? "-∞"}${this.lowerBoundInclusive ? "=" : ""}..${this.upperBoundInclusive ? "=" : ""}${
-                this.upperBound?.toString() ?? "∞"
+            res += `(${this.lowerBound?.toString() ?? ""}${this.lowerBound && this.lowerBoundInclusive ? "=" : ""}..${this.upperBound && this.upperBoundInclusive ? "=" : ""}${
+                this.upperBound?.toString() ?? ""
             })`;
         }
         return res;
