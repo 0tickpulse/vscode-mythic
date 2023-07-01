@@ -170,12 +170,12 @@ export class YString extends YamlSchema {
 
         if (this.supportsPlaceholders) {
             const range = getNodeValueYamlRange(doc, value);
-            const scanner = new MythicScanner(str).scanTokens();
+            const scanner = new MythicScanner(doc, range[0], str).scanTokens();
             const parser = new Parser(scanner);
             const ast = parser.parseMlcValue();
             ast.ifPresent((ast) => {
-                const resolver = new Resolver().setAst(ast);
-                resolver.resolveWithDoc(doc, range[0]);
+                const resolver = new Resolver(doc).setAst(ast);
+                resolver.resolve();
             });
         }
 
@@ -300,7 +300,7 @@ export class YArr extends YamlSchema {
     }
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         if (this.itemSchema instanceof YMythicSkill) {
-            this.itemSchema.resolver = Optional.of(new Resolver());
+            this.itemSchema.resolver = Optional.of(new Resolver(doc));
         }
 
         if (!isCollection(value)) {
@@ -732,12 +732,12 @@ export class YMythicSkill extends YamlSchema {
             })
             .join("\n");
 
-        const ast = getAst(skillLine);
+        const ast = getAst(doc, rangeOffset[0], skillLine);
         const errors: SchemaValidationError[] = [];
         if (ast.hasErrors()) {
             errors.push(
                 ...ast.errors!.map(
-                    (error) => new SchemaValidationError(this, error.message, doc, value, error.range.addOffset(lineLengths, rangeOffset[0])),
+                    (error) => new SchemaValidationError(this, error.message, doc, value, error.range),
                 ),
             );
         }
@@ -745,7 +745,7 @@ export class YMythicSkill extends YamlSchema {
         ast.skillLine &&
             this.resolver.ifPresent((r) => {
                 r.setAst(ast.skillLine!);
-                r.resolveWithDoc(doc, rangeOffset[0]);
+                r.resolve();
             });
 
         const trigger = ast.skillLine?.trigger;
@@ -756,7 +756,7 @@ export class YMythicSkill extends YamlSchema {
                     "Triggers cannot be used in meta-skills. They should only be used to activate meta-skills.",
                     doc,
                     value,
-                    trigger.range.addOffset(lineLengths, rangeOffset[0]),
+                    trigger.range,
                 ),
             );
         }

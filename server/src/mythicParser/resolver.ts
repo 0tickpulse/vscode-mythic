@@ -35,16 +35,10 @@ import { MythicToken } from "./scanner.js";
 
 export class Resolver extends ExprVisitor<void> {
     #source = "";
-    #doc?: DocumentInfo;
-    #initialOffset = 0;
-    #hovers: Hover[] = [];
-    #errors: ResolverError[] = [];
-    #gotoDefinitions: RangeLink[] = [];
-    #characters: Map<CustomRange, [SemanticTokenTypes, SemanticTokenModifier[]]> = new Map();
-    #skillVariables: Map<string, MlcValueExpr | SkillLineExpr> = new Map();
-    #currentSkill: SkillLineExpr | undefined = undefined;
     #expr: Optional<Expr> = Optional.empty();
-    constructor() {
+    #currentSkill?: SkillLineExpr;
+    #skillVariables: Map<string, MlcValueExpr> = new Map();
+    constructor(public doc: DocumentInfo) {
         super();
     }
     setAst(expr: Expr) {
@@ -52,45 +46,8 @@ export class Resolver extends ExprVisitor<void> {
         this.#source = expr.parser.result.source;
         return this;
     }
-    resolveWithDoc(doc: DocumentInfo, initialOffset: number) {
-        this.#hovers = [];
-        this.#errors = [];
-        this.#characters = new Map();
-        this.#gotoDefinitions = [];
-        this.#doc = doc;
-        this.#initialOffset = initialOffset;
-        this.resolve();
-        const hoverRanges = CustomRange.addMultipleOffsets(
-            doc.lineLengths,
-            this.#hovers.map((hover) => r(hover.range!)),
-            initialOffset,
-        );
-        this.#hovers.forEach((hover) => {
-            doc.addHover({ ...hover, range: hoverRanges.shift()! });
-        });
-        const errorRanges = CustomRange.addMultipleOffsets(
-            doc.lineLengths,
-            this.#errors.map((error) => r(error.range)),
-            initialOffset,
-        );
-        this.#errors.forEach((error) => {
-            doc.addError({ ...error.toDiagnostic(), range: errorRanges.shift()! });
-        });
-        const characterRanges = CustomRange.addMultipleOffsets(doc.lineLengths, Array.from(this.#characters.keys()), initialOffset);
-        this.#characters.forEach((color, range) => doc.addHighlight(new Highlight(characterRanges.shift()!, color[0], color[1])));
-        const defRanges = CustomRange.addMultipleOffsets(
-            doc.lineLengths,
-            this.#gotoDefinitions.map((def) => def.fromRange),
-            initialOffset,
-        );
-        this.#gotoDefinitions.forEach((def) => {
-            const range = defRanges.shift()!;
-            def.fromRange = range;
-            doc.addGotoDefinitionAndReverseReference(def);
-        });
-    }
     #addHighlight(range: CustomRange, color: SemanticTokenTypes, modifiers: SemanticTokenModifier[] = []) {
-        this.#characters.set(range, [color, modifiers]);
+        this.doc.addHighlight(new Highlight(range, color, modifiers))
         return [color, modifiers] as const;
     }
     #addHighlightGenericString(genericString: GenericStringExpr, color: SemanticTokenTypes) {
@@ -98,8 +55,6 @@ export class Resolver extends ExprVisitor<void> {
     }
     resolve() {
         this.#resolveExpr();
-
-        return this.#errors;
     }
     #resolveExpr(expr: Expr | null | undefined = this.#expr.get()): void {
         if (!expr) {
@@ -138,7 +93,7 @@ export class Resolver extends ExprVisitor<void> {
         mechanic.rightBrace !== undefined && this.#addHighlight(mechanic.rightBrace.range, SemanticTokenTypes.operator);
 
         if (!getAllMechanicsAndAliases().includes(mechanicName)) {
-            this.#errors.push(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill));
+            this.doc.addError(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill));
             return;
         }
 
@@ -147,13 +102,13 @@ export class Resolver extends ExprVisitor<void> {
         const mechanicData: Optional<MythicHolder> = getHolderFromName("mechanic", mechanicName);
         mechanicData
             .ifPresent((data) => {
-                this.#hovers.push({
+                this.doc.addHover({
                     ...generateHover("mechanic", mechanicName, data),
                     range: mechanic.getNameRange(),
                 });
                 if (data.definition) {
-                    this.#gotoDefinitions.push(new RangeLink(mechanic.getNameRange(), data.definition.range, data.definition.doc));
-                    this.#doc?.addDependency(new Dependency(data.definition.doc));
+                    this.doc.addGotoDefinitionAndReverseReference(new RangeLink(mechanic.getNameRange(), data.definition.range, data.definition.doc));
+                    this.doc?.addDependency(new Dependency(data.definition.doc));
                     nameHighlight[1].push("mutable");
                 } else {
                     nameHighlight[1].push("defaultLibrary");
@@ -175,7 +130,7 @@ export class Resolver extends ExprVisitor<void> {
                     this.#resolveExpr(arg);
                     const matchedField = fields.find((field) => field.names.includes(key.lexeme ?? ""))!;
                     // field is valid, add hover
-                    this.#hovers.push({
+                    this.doc.addHover({
                         contents: generateHoverForField(mechanicName, "mechanic", key.lexeme!, matchedField, true),
                         range: key.range,
                     });
@@ -202,7 +157,7 @@ export class Resolver extends ExprVisitor<void> {
                         continue;
                     }
                     const type = field.type;
-                    type.validate(arg);
+                    type.validate(this.doc, arg);
                 }
             });
 
@@ -313,15 +268,15 @@ export class Resolver extends ExprVisitor<void> {
             this.#addHighlight(dot.range, SemanticTokenTypes.comment);
         }
 
-        if (mlcPlaceholder.identifiers.length === 1 && this.#doc) {
+        if (mlcPlaceholder.identifiers.length === 1 && this.doc) {
             const [identifier] = mlcPlaceholder.identifiers[0];
             const source = identifier.value();
             // check if its a hex color
             if (source.startsWith("#") && source.length === 7) {
                 const color = Color.parseHex(source);
-                const range = identifier.range.addOffset(this.#doc.lineLengths, this.#initialOffset);
+                const range = identifier.range;
                 color.ifOk((color) => {
-                    this.#doc?.colorHints.push(
+                    this.doc?.colorHints.push(
                         new ColorHint(
                             range,
                             color,
@@ -352,7 +307,7 @@ export class Resolver extends ExprVisitor<void> {
     }
     override visitHealthModifierExpr(healthModifier: HealthModifierExpr): void {
         const { operator, valueOrRange, range } = healthModifier;
-        this.#hovers.push({
+        this.doc.addHover({
             contents: {
                 kind: "markdown",
                 value: stripIndentation`# Health modifier
@@ -396,7 +351,7 @@ export class Resolver extends ExprVisitor<void> {
         todo();
     }
     #addError(message: string, expr: Expr, range = expr.range) {
-        this.#errors.push(new ResolverError(this.#source, message, expr, range, this.#currentSkill));
+        this.doc.addError(new ResolverError(this.#source, message, expr, range, this.#currentSkill));
     }
     getFieldFromMlc(mlc: ExprWithMlcs, mechanic: string, field: string) {
         let mlcValue = mlc.mlcsToMap().get(field.toString());

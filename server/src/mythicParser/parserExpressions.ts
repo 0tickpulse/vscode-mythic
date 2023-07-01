@@ -173,7 +173,7 @@ export class MechanicExpr extends ExprWithMlcs {
     }
 
     override formatSource() {
-        return `${this.identifier.value()}\{${this.mlcs?.map((mlc) => mlc.formatSource()).join(";")}\}`;
+        return `${this.identifier.value()}{${this.mlcs?.map((mlc) => mlc.formatSource()).join(";")}}`;
     }
 
     getNameRange() {
@@ -213,7 +213,7 @@ export class TargeterExpr extends ExprWithMlcs {
     }
 
     override formatSource() {
-        return `@${this.identifier.lexeme}\{${this.mlcs?.map((mlc) => mlc.formatSource()).join(";")}\}`;
+        return `@${this.identifier.lexeme}{${this.mlcs?.map((mlc) => mlc.formatSource()).join(";")}}`;
     }
 
     override accept<T>(visitor: ExprVisitor<T>): T {
@@ -294,9 +294,9 @@ export class InlineConditionExpr extends ExprWithMlcs {
     }
 
     override formatSource() {
-        return `?${this.trigger ? "~" : ""}${this.negate ? "!" : ""}${this.identifier.lexeme}\{${this.mlcs
+        return `?${this.trigger ? "~" : ""}${this.negate ? "!" : ""}${this.identifier.lexeme}{${this.mlcs
             ?.map((mlc) => mlc.formatSource())
-            .join(";")}\}`;
+            .join(";")}}`;
     }
 
     override accept<T>(visitor: ExprVisitor<T>): T {

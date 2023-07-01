@@ -1,6 +1,7 @@
 import { Range } from "vscode-languageserver-textdocument";
 import { SyntaxError } from "../errors.js";
 import { CustomPosition, CustomRange, r } from "../utils/positionsAndRanges.js";
+import { DocumentInfo } from "../yaml/parser/documentInfo.js";
 
 export const TOKEN_TYPE = [
     "LeftSquareBracket",
@@ -26,7 +27,7 @@ export const TOKEN_TYPE = [
     "Eof",
 ] as const;
 
-export type MythicTokenType = typeof TOKEN_TYPE[number];
+export type MythicTokenType = (typeof TOKEN_TYPE)[number];
 
 function maxLength(values: string[]) {
     let maxLength = 0;
@@ -40,18 +41,17 @@ function maxLength(values: string[]) {
 
 export class MythicToken {
     range: CustomRange;
-    lineLengths: number[];
     constructor(
+        readonly doc: DocumentInfo,
         readonly source: string,
         readonly type: MythicTokenType,
         readonly lexeme: string | undefined,
         readonly literal: string | undefined,
-        readonly line: number,
         readonly start: number,
         readonly current: number,
     ) {
-        this.lineLengths = this.source.split("\n").map((l) => l.length);
-        this.range = r(CustomPosition.fromOffset(this.lineLengths, this.start), CustomPosition.fromOffset(this.lineLengths, this.current));
+        const lineLengths = doc.lineLengths;
+        this.range = r(CustomPosition.fromOffset(lineLengths, this.start), CustomPosition.fromOffset(lineLengths, this.current));
     }
 
     toString() {
@@ -60,10 +60,6 @@ export class MythicToken {
 
     length() {
         return this.lexeme !== undefined ? this.lexeme.length : 0;
-    }
-
-    getLine(offset = 0) {
-        return CustomPosition.fromOffset(this.lineLengths, this.current + offset).line + 1;
     }
 }
 
@@ -101,8 +97,12 @@ export class MythicScanner {
         ".": (scanner: MythicScanner) => scanner.#addToken("Dot"),
         "%": (scanner: MythicScanner) => scanner.#addToken("Percent"),
         " ": (scanner: MythicScanner) => scanner.#addToken("Space"),
-        "\r": () => { /* nothing */ },
-        "\t": () => { /* nothing */ },
+        "\r": () => {
+            /* nothing */
+        },
+        "\t": () => {
+            /* nothing */
+        },
         "\n": (scanner: MythicScanner) => scanner.#line++,
         '"': (scanner: MythicScanner) => scanner.#string(),
     };
@@ -113,7 +113,7 @@ export class MythicScanner {
     #line = 1;
     #source: string;
 
-    constructor(source: string) {
+    constructor(public doc: DocumentInfo, public initialOffset: number, source: string) {
         this.#source = source;
     }
 
@@ -123,7 +123,7 @@ export class MythicScanner {
                 this.#start = this.#current;
                 this.scanToken();
             }
-            this.#tokens.push(new MythicToken(this.#source, "Eof", "", "", this.#line, this.#start, this.#current));
+            this.#tokens.push(new MythicToken(this.doc, this.#source, "Eof", "", "", this.#start, this.#current));
             return { tokens: this.#tokens, errors: [], source: this.#source };
         } catch (e: unknown) {
             return { errors: [e as SyntaxError], source: this.#source };
@@ -207,12 +207,10 @@ export class MythicScanner {
 
     #addToken(type: MythicTokenType, literal?: string): void {
         const text = this.#source.substring(this.#start, this.#current);
-        // get line chr by subtracting the last newline from the current position
-        const lineChr = this.#current - this.#source.lastIndexOf("\n", this.#current);
-        this.#tokens.push(new MythicToken(this.#source, type, text, literal, this.#line, this.#start, this.#current));
+        this.#tokens.push(new MythicToken(this.doc, this.#source, type, text, literal, this.#start + this.initialOffset, this.#current + this.initialOffset));
     }
 
     #getCurrentRange(): CustomRange {
-        return r(this.#line, this.#start, this.#line, this.#current);
+        return CustomRange.fromYamlRange(this.doc.lineLengths, [this.#start, this.#current, 0]);
     }
 }
