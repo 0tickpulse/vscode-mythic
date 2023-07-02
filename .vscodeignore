@@ -13,4 +13,4 @@ client/*
 **/tsconfig.json
 
 # For obvious reasons
-node_modules/
+**/*/node_modules/
