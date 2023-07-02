@@ -8,8 +8,8 @@ import { generateHover, getHolderFromName } from "../services.js";
 import { InvalidFieldValueError, MythicFieldType } from "../types.js";
 import { SyntaxError } from "../../errors.js";
 
-class MFMythicSkillParser extends Parser {
-    parse() {
+export class MFMythicSkillParser extends Parser {
+    mythicSkill() {
         if (this.match("Identifier")) {
             return this.previous();
         }
@@ -43,13 +43,35 @@ export class MFMythicSkill extends MythicFieldType {
         super();
         this.setName("mythicSkill");
     }
+    static validateSkillName(doc: DocumentInfo, value: MlcValueExpr, identifier: MythicToken) {
+        const mechanicName = identifier.lexeme;
+        const holder = getHolderFromName("mechanic", "skill:" + mechanicName);
+        if (holder.isPresent()) {
+            const h = holder.get();
+            if (h.definition) {
+                doc.addHover({
+                    ...generateHover("mechanic", mechanicName, h),
+                    range: identifier.range,
+                });
+                doc.addGotoDefinitionAndReverseReference(new RangeLink(identifier.range, h.definition.range, h.definition.doc));
+                doc.addHighlight(new Highlight(identifier.range, SemanticTokenTypes.function));
+                return [];
+            }
+        }
+
+        doc.addError(new InvalidFieldValueError(`Unknown metaskill '${mechanicName}'`, value, identifier.range));
+    }
+    static validateInlineSkill(doc: DocumentInfo, value: MlcValueExpr, inlineSkill: InlineSkillExpr) {
+        // nothing for now
+    }
+
     override validate(doc: DocumentInfo, value: MlcValueExpr): Expr[] {
         const str = value.getSource();
         const scanner = new MythicScanner(doc, value.range.start.toOffset(doc.lineLengths), str);
         const tokens = scanner.scanTokens();
         let expr: InlineSkillExpr | MythicToken;
         try {
-            expr = new MFMythicSkillParser(tokens).parse();
+            expr = new MFMythicSkillParser(tokens).mythicSkill();
         } catch (e) {
             if (e instanceof SyntaxError) {
                 doc.addError(e);
@@ -57,24 +79,11 @@ export class MFMythicSkill extends MythicFieldType {
             return [];
         }
         if (expr instanceof InlineSkillExpr) {
+            MFMythicSkill.validateInlineSkill(doc, value, expr);
             return [expr];
         }
-        const mechanicName = expr.lexeme;
-        const holder = getHolderFromName("mechanic", "skill:" + mechanicName);
-        if (holder.isPresent()) {
-            const h = holder.get();
-            if (h.definition) {
-                doc.addHover({
-                    ...generateHover("mechanic", mechanicName, h),
-                    range: value.range,
-                });
-                doc.addGotoDefinitionAndReverseReference(new RangeLink(value.range, h.definition.range, h.definition.doc));
-                doc.addHighlight(new Highlight(value.range, SemanticTokenTypes.function));
-                return [];
-            }
-        }
 
-        doc.addError(new InvalidFieldValueError(`Unknown metaskill '${mechanicName}'`, value));
+        MFMythicSkill.validateSkillName(doc, value, expr);
 
         return [];
     }

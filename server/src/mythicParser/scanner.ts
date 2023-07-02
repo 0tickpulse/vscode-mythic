@@ -117,7 +117,7 @@ export class MythicScanner {
                 this.#start = this.#current;
                 this.scanToken();
             }
-            this.#tokens.push(new MythicToken(this.doc, this.#source, "Eof", "", this.#start, this.#current));
+            this.#tokens.push(new MythicToken(this.doc, this.#source, "Eof", "", this.#start + this.initialOffset, this.#current + this.initialOffset));
             return { tokens: this.#tokens, errors: [], source: this.doc.source };
         } catch (e: unknown) {
             return { errors: [e as SyntaxError], source: this.doc.source };

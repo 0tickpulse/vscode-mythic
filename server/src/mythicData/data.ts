@@ -1,6 +1,7 @@
 import { MythicData, MythicFieldTypeString, MythicHovers } from "./types.js";
 import { generateHover } from "./services.js";
 import { MFMythicSkill } from "./specialTypes/mythicSkillType.js";
+import { MFSwitchCases } from "./specialTypes/mythicSwitchCasesType.js";
 
 export const data = {
     mechanic: [
@@ -37,6 +38,17 @@ export const data = {
                     names: ["skill", "s"],
                     description: "The skill to run.",
                     type: new MFMythicSkill(),
+                }
+            ]
+        },
+        {
+            names: ["switch"],
+            description: "Switches between different cases.",
+            fields: [
+                {
+                    names: ["cases", "c"],
+                    description: "The cases to switch between.",
+                    type: new MFSwitchCases(),
                 }
             ]
         }
