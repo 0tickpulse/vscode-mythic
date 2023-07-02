@@ -1,5 +1,13 @@
 # Changelogs
 
+## Unreleased
+
+### Added
+
+- Intellisense for `switch` mechanic
+- Intellisense for `randomskill` mechanic
+- Intellisense for `skill` mechanic
+
 ## 1.9.5 - 2023-07-02
 
 ### Changed
