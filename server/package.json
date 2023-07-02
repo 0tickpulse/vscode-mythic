@@ -3,7 +3,7 @@
     "name": "mythic-language-server",
     "version": "0.1.0",
     "description": "Language Server implementation for MythicMobs configurations.",
-    "main": "out/index.js",
+    "main": "dist/server.js",
     "author": "0tickpulse",
     "license": "AGPL-3.0-or-later",
     "prettier": {
