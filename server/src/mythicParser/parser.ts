@@ -11,7 +11,7 @@
 
 import { Optional } from "tick-ts-utils";
 import { CompletionItem } from "vscode-languageserver";
-import { SyntaxError } from "../errors.js";
+import { GenericError } from "../errors.js";
 import { CustomPosition } from "../utils/positionsAndRanges.js";
 import { YString } from "../yaml/schemaSystem/schemaTypes.js";
 import {
@@ -29,11 +29,11 @@ import {
 import { MythicScannerResult, MythicToken, MythicTokenType } from "./scanner.js";
 
 export class MythicSkillParseResult {
-    private constructor(public skillLine?: SkillLineExpr, public errors?: SyntaxError[], public completions?: string[]) {}
+    private constructor(public skillLine?: SkillLineExpr, public errors?: GenericError[], public completions?: string[]) {}
     static fromSkillLine(skillLine: SkillLineExpr) {
         return new MythicSkillParseResult(skillLine);
     }
-    static fromErrors(errors: SyntaxError[]) {
+    static fromErrors(errors: GenericError[]) {
         return new MythicSkillParseResult(undefined, errors);
     }
     hasErrors() {
@@ -102,7 +102,7 @@ export class Parser {
         try {
             return MythicSkillParseResult.fromSkillLine(this.skillLine());
         } catch (e) {
-            if (e instanceof SyntaxError) {
+            if (e instanceof GenericError) {
                 return MythicSkillParseResult.fromErrors([e]);
             }
             throw e;
@@ -445,8 +445,8 @@ export class Parser {
     protected previous(): MythicToken {
         return this.#tokens[this.#current - 1];
     }
-    protected error(token: MythicToken, message: string): SyntaxError {
-        return new SyntaxError(token.range, this.result.source ?? "", message, token);
+    protected error(token: MythicToken, message: string): GenericError {
+        return new GenericError(token.range, this.result.source ?? "", message, token);
     }
     protected completion(completions: CompletionItem[]): void {
         if (!this.#isCompleting) {

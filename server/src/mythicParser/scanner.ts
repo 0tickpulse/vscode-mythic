@@ -1,4 +1,4 @@
-import { SyntaxError } from "../errors.js";
+import { GenericError } from "../errors.js";
 import { CustomPosition, CustomRange, r } from "../utils/positionsAndRanges.js";
 import { DocumentInfo } from "../yaml/parser/documentInfo.js";
 
@@ -13,6 +13,7 @@ export const TOKEN_TYPE = [
     "At",
     "Tilde",
     "Question",
+    "Comma",
     "Exclamation",
     "Colon",
     "LessThan",
@@ -59,7 +60,7 @@ export class MythicToken {
 
 export type MythicScannerResult = {
     tokens?: MythicToken[];
-    errors?: SyntaxError[];
+    errors?: GenericError[];
     source: string;
 };
 
@@ -84,6 +85,7 @@ export class MythicScanner {
         "@": (scanner: MythicScanner) => scanner.#addToken("At"),
         "~": (scanner: MythicScanner) => scanner.#addToken("Tilde"),
         "?": (scanner: MythicScanner) => scanner.#addToken("Question"),
+        ",": (scanner: MythicScanner) => scanner.#addToken("Comma"),
         "!": (scanner: MythicScanner) => scanner.#addToken("Exclamation"),
         ":": (scanner: MythicScanner) => scanner.#addToken("Colon"),
         "<": (scanner: MythicScanner) => scanner.#addToken("LessThan"),
@@ -120,7 +122,7 @@ export class MythicScanner {
             this.#tokens.push(new MythicToken(this.doc, this.#source, "Eof", "", this.#start + this.initialOffset, this.#current + this.initialOffset));
             return { tokens: this.#tokens, errors: [], source: this.doc.source };
         } catch (e: unknown) {
-            return { errors: [e as SyntaxError], source: this.doc.source };
+            return { errors: [e as GenericError], source: this.doc.source };
         }
     }
 
@@ -137,7 +139,7 @@ export class MythicScanner {
             this.#advance();
         }
         if (this.#isAtEnd()) {
-            throw new SyntaxError(this.#getCurrentRange(), this.#source, "Unterminated string.");
+            throw new GenericError(this.#getCurrentRange(), this.#source, "Unterminated string.");
         }
         // closing "
         this.#advance();

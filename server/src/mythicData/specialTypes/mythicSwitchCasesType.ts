@@ -5,11 +5,12 @@ import { MythicScanner, MythicToken } from "../../mythicParser/scanner.js";
 import { MFMythicSkill, MFMythicSkillParser } from "./mythicSkillType.js";
 import { InvalidFieldValueError, MythicFieldType } from "../types.js";
 import { DocumentInfo } from "../../yaml/parser/documentInfo.js";
-import { SyntaxError } from "../../errors.js";
+import { GenericError } from "../../errors.js";
 import { Highlight } from "../../colors.js";
 import { SemanticTokenTypes } from "vscode-languageserver";
+import { Resolver } from "../../mythicParser/resolver.js";
 
-class SwitchCasesExpr {
+class SwitchCases {
     constructor(parser: Parser, start: Position, readonly cases: [MythicToken, GenericStringExpr, MythicToken, MythicToken | InlineSkillExpr][]) {}
 }
 
@@ -40,7 +41,7 @@ export class MFSwitchCasesParser extends MFMythicSkillParser {
 
             cases.push([caseKeyword, genericString, equal, mythicSkill]);
         }
-        return new SwitchCasesExpr(this, this.currentPosition(), cases);
+        return new SwitchCases(this, this.currentPosition(), cases);
     }
 }
 
@@ -49,15 +50,15 @@ export class MFSwitchCases extends MythicFieldType {
         super();
         this.setName("switchCases");
     }
-    override validate(doc: DocumentInfo, value: MlcValueExpr): Expr[] {
+    override validate(doc: DocumentInfo, value: MlcValueExpr, _: Resolver): Expr[] {
         const str = value.getSource();
         const scanner = new MythicScanner(doc, value.range.start.toOffset(doc.lineLengths), str);
         const tokens = scanner.scanTokens();
-        let expr: SwitchCasesExpr;
+        let expr: SwitchCases;
         try {
             expr = new MFSwitchCasesParser(tokens).switchCases();
         } catch (e) {
-            if (e instanceof SyntaxError) {
+            if (e instanceof GenericError) {
                 doc.addError(e);
             }
             return [];

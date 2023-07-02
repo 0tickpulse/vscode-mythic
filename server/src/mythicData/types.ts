@@ -3,6 +3,7 @@ import { Diagnostic, Hover } from "vscode-languageserver";
 import { Expr, MlcValueExpr } from "../mythicParser/parserExpressions.js";
 import { CustomRange } from "../utils/positionsAndRanges.js";
 import { Dependency, DocumentInfo } from "../yaml/parser/documentInfo.js";
+import { Resolver } from "../mythicParser/resolver.js";
 
 export type MythicHolderType = "mechanic" | "condition" | "targeter";
 
@@ -47,7 +48,7 @@ export class MythicFieldType {
      * Validates the value of a field.
      * Returns an array of Exprs that should be visited.
      */
-    validate(doc: DocumentInfo, value: MlcValueExpr): Expr[] {
+    validate(doc: DocumentInfo, value: MlcValueExpr, resolver: Resolver): Expr[] {
         return [];
     }
     get typeText() {
@@ -72,7 +73,7 @@ export class MythicFieldTypeString extends MythicFieldType {
         super();
         this.literal = Optional.of(literal);
     }
-    validate(doc: DocumentInfo, value: MlcValueExpr): Expr[] {
+    validate(doc: DocumentInfo, value: MlcValueExpr, resolver: Resolver): Expr[] {
         const str = value.getSource();
         this.literal.ifPresent((literal) => {
             if (this.caseSensitive) {

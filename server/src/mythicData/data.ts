@@ -2,6 +2,7 @@ import { MythicData, MythicFieldTypeString, MythicHovers } from "./types.js";
 import { generateHover } from "./services.js";
 import { MFMythicSkill } from "./specialTypes/mythicSkillType.js";
 import { MFSwitchCases } from "./specialTypes/mythicSwitchCasesType.js";
+import { MFCommaSeparatedSkills } from "./specialTypes/mythicCommaSeparatedSkillsType.js";
 
 export const data = {
     mechanic: [
@@ -27,7 +28,7 @@ export const data = {
             description: "Applies an orbital aura to the target.",
         },
         {
-            names: ["variableSet"],
+            names: ["variableset"],
             description: "Sets a variable to a value.",
         },
         {
@@ -49,6 +50,17 @@ export const data = {
                     names: ["cases", "c"],
                     description: "The cases to switch between.",
                     type: new MFSwitchCases(),
+                }
+            ]
+        },
+        {
+            names: ["randomskill"],
+            description: "Runs a random skill from a comma-separated list of skills.",
+            fields: [
+                {
+                    names: ["skills", "s"],
+                    description: "The skills to choose from.",
+                    type: new MFCommaSeparatedSkills(),
                 }
             ]
         }

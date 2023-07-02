@@ -33,6 +33,7 @@ export class Dependency {
     dependents: Dependency[] = [];
     id: string;
     addDependency(dependency: Dependency) {
+        dbg("Dependency", `Adding dependency ${dependency.id} to ${this.id}`)
         this.dependencies.push(dependency);
         dependency.dependents.push(this);
     }

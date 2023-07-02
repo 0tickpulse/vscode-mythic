@@ -4,17 +4,45 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "npm",
-			"script": "watch",
-			"problemMatcher": "$tsc-watch",
-			"isBackground": true,
-			"presentation": {
-				"reveal": "never"
+			"label": "Webpack Development: Client",
+			"command": "pnpm",
+			"args": [
+				"run",
+				"client:webpack-dev"
+			],
+			"group": "build",
+			"problemMatcher": "$ts-webpack-watch",
+			"icon": {
+				"id": "archive",
+				"color": "terminal.ansiRed"
 			},
+			"isBackground": true
+		},
+		{
+			"label": "Webpack Development: Server",
+			"command": "pnpm",
+			"args": [
+				"run",
+				"server:webpack-dev"
+			],
+			"group": "build",
+			"problemMatcher": "$ts-webpack-watch",
+			"icon": {
+				"id": "archive",
+				"color": "terminal.ansiRed"
+			},
+			"isBackground": true
+		},
+		{
+			"label": "Webpack Development",
+			"dependsOn": [
+				"Webpack Development: Client",
+				"Webpack Development: Server"
+			],
 			"group": {
 				"kind": "build",
 				"isDefault": true
 			}
-		}
+		},
 	]
 }

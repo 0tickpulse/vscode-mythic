@@ -296,10 +296,6 @@ export class YArr extends YamlSchema {
         return `an array in which items are each '${this.itemSchema.getDescription()}'`;
     }
     override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
-        if (this.itemSchema instanceof YMythicSkill) {
-            this.itemSchema.resolver = Optional.of(new Resolver(doc));
-        }
-
         if (!isCollection(value)) {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
         }
@@ -316,59 +312,6 @@ export class YArr extends YamlSchema {
     override postValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         // traverse children
         const errors: SchemaValidationError[] = [];
-        if (this.itemSchema instanceof YMythicSkill) {
-            this.itemSchema.resolver = Optional.of(new Resolver(doc));
-        }
-        isCollection(value) &&
-            value.items.forEach((item) => {
-                const innerErrors = this.itemSchema.runPostValidation(doc, item as Node);
-                errors.push(...innerErrors);
-            });
-        return errors;
-    }
-    override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
-        isCollection(value) &&
-            value.items.forEach((item) => {
-                this.itemSchema.autoComplete(doc, item as Node, cursor);
-            });
-    }
-    get rawTypeText() {
-        return `array(${this.itemSchema.typeText})`;
-    }
-}
-export class YMythicSkillArr extends YamlSchema {
-    constructor(public itemSchema: YMythicSkill, public resolver: Resolver) {
-        super();
-    }
-    setItemSchema(itemSchema: YMythicSkill) {
-        this.itemSchema = itemSchema;
-        return this;
-    }
-    override getDescription() {
-        return `an array of mythic skills.'`;
-    }
-    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
-        this.itemSchema.resolver = Optional.of(this.resolver);
-
-        if (!isCollection(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
-        }
-
-        const errors: SchemaValidationError[] = [];
-
-        value.items.forEach((item) => {
-            const innerErrors = this.itemSchema.runPreValidation(doc, item as Node);
-            errors.push(...innerErrors);
-        });
-
-        return errors;
-    }
-    override postValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
-        // traverse children
-        const errors: SchemaValidationError[] = [];
-        if (this.itemSchema instanceof YMythicSkill) {
-            this.itemSchema.resolver = Optional.of(new Resolver(doc));
-        }
         isCollection(value) &&
             value.items.forEach((item) => {
                 const innerErrors = this.itemSchema.runPostValidation(doc, item as Node);
@@ -564,10 +507,10 @@ export class YObj extends YamlSchema {
     }
 }
 export class YMap extends YamlSchema {
-    constructor(public values: YArr) {
+    constructor(public values: YamlSchema) {
         super();
     }
-    setValues(values: YArr) {
+    setValues(values: YamlSchema) {
         this.values = values;
         return this;
     }
@@ -581,8 +524,17 @@ export class YMap extends YamlSchema {
 
         const errors: SchemaValidationError[] = [];
 
+        const keys = new Set<string>();
         const { items } = value;
         for (const item of items) {
+            if (item.key !== null) {
+                const keyNode = item.key as Scalar;
+                const key = String(keyNode.value);
+                if (keys.has(key)) {
+                    errors.push(new SchemaValidationError(this, `Duplicate key "${key}"!`, doc, keyNode));
+                }
+                keys.add(key);
+            }
             const error = this.values.runPreValidation(doc, item.value as Node);
             errors.push(...error);
         }

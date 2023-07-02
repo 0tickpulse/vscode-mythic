@@ -16,5 +16,6 @@
             "url": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json"
         }
     ],
-    "C_Cpp.errorSquiggles": "disabled"
+    "C_Cpp.errorSquiggles": "disabled",
+    "cmake.configureOnOpen": false
 }

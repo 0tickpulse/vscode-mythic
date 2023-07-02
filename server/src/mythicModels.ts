@@ -52,4 +52,7 @@ export class CachedMythicSkill extends Dependency {
     toString() {
         return `CachedMythicSkill(${this.name})`;
     }
+    getSource(): string {
+        return this.doc.source.substring(this.node[0].range![0], this.node[1].range![1]);
+    }
 }

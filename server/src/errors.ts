@@ -4,7 +4,7 @@ import { Expr, MlcValueExpr, SkillLineExpr } from "./mythicParser/parserExpressi
 import { MythicToken } from "./mythicParser/scanner.js";
 import { CustomRange } from "./utils/positionsAndRanges.js";
 
-export class SyntaxError extends Error {
+export class GenericError extends Error {
     #codeDescription: string | undefined;
     #severity: DiagnosticSeverity = 1;
     constructor(
@@ -36,13 +36,13 @@ export class SyntaxError extends Error {
     }
 }
 
-export class InvalidFieldValueError extends SyntaxError {
+export class InvalidFieldValueError extends GenericError {
     constructor(source: string, message: string, public field: MythicFieldType, expr: MlcValueExpr , range = expr.range, code = 0) {
         super(range, source, message, undefined, code);
     }
 }
 
-export class ResolverError extends SyntaxError {
+export class ResolverError extends GenericError {
     constructor(source: string, message: string, expr: Expr, range = expr.range, skill?: SkillLineExpr, code = 0) {
         super(range, source, message, undefined, code);
     }

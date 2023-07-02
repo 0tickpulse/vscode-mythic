@@ -54,11 +54,11 @@ export function getHolderFromName(type: keyof MythicData, name: string): Optiona
             });
         }
     }
-    return Optional.of(typedData[type].find((h) => h.names.includes(name)));
+    return Optional.of(typedData[type].find((h) => h.names.includes(name.toLowerCase())));
 }
 
 export function getHolderFieldFromName(holder: MythicHolder, name: string): Optional<MythicField> {
-    return Optional.of(holder.fields?.find((f) => f.names.includes(name)));
+    return Optional.of(holder.fields?.find((f) => f.names.includes(name.toLowerCase())));
 }
 
 export function generateHover(type: keyof MythicData, name: string, holder: MythicHolder): Hover {

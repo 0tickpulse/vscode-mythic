@@ -33,6 +33,7 @@ import {
 } from "./parserExpressions.js";
 import { MythicToken } from "./scanner.js";
 import { CachedMythicSkill } from "../mythicModels.js";
+import { dbg } from "../utils/logging.js";
 
 export class Resolver extends ExprVisitor<void> {
     #source = "";
@@ -67,6 +68,9 @@ export class Resolver extends ExprVisitor<void> {
         // console.timeEnd(`resolve ${expr.constructor.name}`);
         return value;
     }
+    toString() {
+        return `Resolver(${this.doc.uri}, ${this.cachedSkill?.name})`;
+    }
     override visitSkillLineExpr(skillLine: SkillLineExpr): void {
         this.#currentSkill = skillLine;
         this.#resolveExpr(skillLine.mechanic ?? null);
@@ -93,8 +97,8 @@ export class Resolver extends ExprVisitor<void> {
         }
         mechanic.rightBrace !== undefined && this.#addHighlight(mechanic.rightBrace.range, SemanticTokenTypes.operator);
 
-        if (!getAllMechanicsAndAliases().includes(mechanicName)) {
-            this.doc.addError(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill));
+        if (!getAllMechanicsAndAliases().includes(mechanicName.toLowerCase())) {
+            this.doc.addError(new UnknownMechanicResolverError(this.#source, mechanic, this.#currentSkill).toDiagnostic());
             return;
         }
 
@@ -158,7 +162,7 @@ export class Resolver extends ExprVisitor<void> {
                         continue;
                     }
                     const type = field.type;
-                    type.validate(this.doc, arg).forEach((e) => e.accept(this));
+                    type.validate(this.doc, arg, this).forEach((e) => e.accept(this));
                 }
             });
 
@@ -166,16 +170,16 @@ export class Resolver extends ExprVisitor<void> {
             return;
         }
 
-        if (getHolderFromName("mechanic", "variableSet").get().names.includes(mechanicName)) {
+        if (getHolderFromName("mechanic", "variableset").get().names.includes(mechanicName)) {
             let name: string;
             let scope: string;
             try {
-                name = this.#interpretMlcValue(this.getFieldFromMlc(mechanic, "variableSet", "name"));
-                scope = this.#interpretMlcValue(this.getFieldFromMlc(mechanic, "variableSet", "scope"));
+                name = this.#interpretMlcValue(this.getFieldFromMlc(mechanic, "variableset", "name"));
+                scope = this.#interpretMlcValue(this.getFieldFromMlc(mechanic, "variableset", "scope"));
             } catch {
                 return;
             }
-            const value = this.getFieldFromMlc(mechanic, "variableSet", "value") as MlcValueExpr;
+            const value = this.getFieldFromMlc(mechanic, "variableset", "value") as MlcValueExpr;
 
             if (scope === undefined) {
                 if (VARIABLE_SCOPES.some((scope) => name.startsWith(scope + "."))) {
@@ -352,7 +356,7 @@ export class Resolver extends ExprVisitor<void> {
         todo();
     }
     #addError(message: string, expr: Expr, range = expr.range) {
-        this.doc.addError(new ResolverError(this.#source, message, expr, range, this.#currentSkill));
+        this.doc.addError(new ResolverError(this.#source, message, expr, range, this.#currentSkill).toDiagnostic());
     }
     getFieldFromMlc(mlc: ExprWithMlcs, mechanic: string, field: string) {
         let mlcValue = mlc.mlcsToMap().get(field.toString());

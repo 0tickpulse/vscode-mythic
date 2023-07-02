@@ -6,7 +6,8 @@ import { MythicScanner, MythicToken } from "../../mythicParser/scanner.js";
 import { DocumentInfo, RangeLink } from "../../yaml/parser/documentInfo.js";
 import { generateHover, getHolderFromName } from "../services.js";
 import { InvalidFieldValueError, MythicFieldType } from "../types.js";
-import { SyntaxError } from "../../errors.js";
+import { GenericError } from "../../errors.js";
+import { Resolver } from "../../mythicParser/resolver.js";
 
 export class MFMythicSkillParser extends Parser {
     mythicSkill() {
@@ -61,11 +62,11 @@ export class MFMythicSkill extends MythicFieldType {
 
         doc.addError(new InvalidFieldValueError(`Unknown metaskill '${mechanicName}'`, value, identifier.range));
     }
-    static validateInlineSkill(doc: DocumentInfo, value: MlcValueExpr, inlineSkill: InlineSkillExpr) {
+    static validateInlineSkill(_doc: DocumentInfo, _value: MlcValueExpr, _inlineSkill: InlineSkillExpr) {
         // nothing for now
     }
 
-    override validate(doc: DocumentInfo, value: MlcValueExpr): Expr[] {
+    override validate(doc: DocumentInfo, value: MlcValueExpr, _: Resolver): Expr[] {
         const str = value.getSource();
         const scanner = new MythicScanner(doc, value.range.start.toOffset(doc.lineLengths), str);
         const tokens = scanner.scanTokens();
@@ -73,7 +74,7 @@ export class MFMythicSkill extends MythicFieldType {
         try {
             expr = new MFMythicSkillParser(tokens).mythicSkill();
         } catch (e) {
-            if (e instanceof SyntaxError) {
+            if (e instanceof GenericError) {
                 doc.addError(e);
             }
             return [];
