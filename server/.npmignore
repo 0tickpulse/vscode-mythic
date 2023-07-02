@@ -1,7 +1,0 @@
-# NPM IGNORE FILE
-# This file is used to ignore files when publishing to NPM
-
-# TypeScript files
-**/*.ts
-tsconfig.json
-tsconfig.tsbuildinfo
