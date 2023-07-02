@@ -9,7 +9,7 @@ docs/
 .DS_Store
 
 # Webpack build output
-dist/
+**/dist/
 
 # Pnpm lockfile
 **/pnpm-lock.yaml

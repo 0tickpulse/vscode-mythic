@@ -9,7 +9,7 @@ let client: LanguageClient;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: ExtensionContext) {
-    const serverModule = context.asAbsolutePath(join("dist", "server.js"));
+    const serverModule = context.asAbsolutePath(join("server", "dist", "server.js"));
     log(`Mythic Language Client
         Node Version: ${process.version}
         File: ${__filename}`);
