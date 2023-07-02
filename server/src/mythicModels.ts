@@ -6,7 +6,8 @@ import { CustomRange } from "./utils/positionsAndRanges.js";
  * Represents a cached Mythic Skill.
  */
 export class CachedMythicSkill extends Dependency {
-    public readonly description: string;
+    readonly description: string;
+    dependencies: Dependency[] = [];
     constructor(
         /**
          * The path to the file containing the skill.
@@ -22,7 +23,7 @@ export class CachedMythicSkill extends Dependency {
          */
         public readonly name: string,
     ) {
-        super(doc);
+        super(doc, declarationRange);
         const key = node[0];
         const comment = key.commentBefore ?? undefined;
         // FORMAT

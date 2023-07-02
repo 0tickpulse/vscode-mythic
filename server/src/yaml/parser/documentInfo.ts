@@ -9,6 +9,7 @@ import { URI } from "vscode-uri";
 import { globalData } from "../../documentManager.js";
 import { info } from "console";
 import { dbg } from "../../utils/logging.js";
+import { CachedMythicSkill } from "../../mythicModels.js";
 
 /**
  * Describes a link between two ranges in two documents.
@@ -22,7 +23,19 @@ export class RangeLink {
 }
 
 export class Dependency {
-    constructor(public doc: DocumentInfo) {}
+    constructor(public doc: DocumentInfo, public range: CustomRange) {
+        this.id = doc.uri + ":" + range.toString();
+    }
+    getSource() {
+        return this.doc.source;
+    }
+    dependencies: Dependency[] = [];
+    dependents: Dependency[] = [];
+    id: string;
+    addDependency(dependency: Dependency) {
+        this.dependencies.push(dependency);
+        dependency.dependents.push(this);
+    }
 }
 
 export class DocumentInfo {
@@ -37,11 +50,9 @@ export class DocumentInfo {
     gotoReferences: RangeLink[] = [];
     colorHints: ColorHint[] = [];
     lineLengths: number[];
-    #dependencies: Set<Dependency> = new Set();
-    #dependents: Set<Dependency> = new Set();
     autoCompletions: CompletionItem[] = [];
     uri: string;
-    dependency: Dependency;
+    cachedMythicSkills: CachedMythicSkill[] = [];
     constructor(
         public base: TextDocument,
         public yamlAst: Document = parseDocument(base.getText(), { keepSourceTokens: true }),
@@ -55,7 +66,6 @@ export class DocumentInfo {
         this.schema = Optional.of(schema);
         this.errors = errors ?? [];
         this.lineLengths = this.source.split("\n").map((line) => line.length);
-        this.dependency = new Dependency(this);
     }
     setSchema(schema: YamlSchema) {
         this.schema = Optional.of(schema);
@@ -112,18 +122,13 @@ export class DocumentInfo {
     fmt() {
         return URI.parse(this.base.uri).fsPath;
     }
-    addDependency(doc: Dependency) {
-        this.#dependencies.add(doc);
-        const docInfo = globalData.documents.getDocument(doc.doc.uri);
-        docInfo && docInfo.addDependent(this.dependency);
+    getAllDependencies() {
+        // MYTHIC SKILLS
+        return this.cachedMythicSkills.flatMap((skill) => skill.dependencies);
     }
-    /**
-     * Adds a dependent document. Do not call this method directly, use `addDependency` instead.
-     *
-     * @param doc The dependent document.
-     */
-    addDependent(doc: Dependency) {
-        this.#dependents.add(doc);
+    getAllDependents() {
+        // MYTHIC SKILLS
+        return this.cachedMythicSkills.flatMap((skill) => skill.dependents);
     }
     /**
      * Traverse all dependencies of this document. If those documents have dependencies, they will be traversed as well, and so on recursively.
@@ -134,16 +139,15 @@ export class DocumentInfo {
      */
     traverseDependencies(callback: (doc: Dependency) => void) {
         const visited = new Set<string>();
-        const queue = [...this.#dependencies];
+        const queue = this.getAllDependencies();
         while (queue.length > 0) {
             const dependency = queue.shift()!;
-            if (visited.has(dependency.doc.uri)) {
+            if (visited.has(dependency.id)) {
                 continue;
             }
-            visited.add(dependency.doc.uri);
+            visited.add(dependency.id);
             callback(dependency);
-            const doc = globalData.documents.getDocument(dependency.doc.uri);
-            doc && queue.push(...doc.#dependencies);
+            queue.push(...dependency.dependencies);
         }
     }
     /**
@@ -155,7 +159,7 @@ export class DocumentInfo {
      */
     traverseDependents(callback: (doc: Dependency) => void) {
         const visited = new Set<string>();
-        const queue = [...this.#dependents];
+        const queue = this.getAllDependents();
         info("DocumentInfo", `Traversing at least ${queue.length} dependents of ${this.uri}`)
         while (queue.length > 0) {
             const dependency = queue.shift()!;
@@ -165,8 +169,7 @@ export class DocumentInfo {
             visited.add(dependency.doc.uri);
             info("DocumentInfo", `Traversing dependents of ${this.uri}: ${dependency.doc.uri}`)
             callback(dependency);
-            const doc = globalData.documents.getDocument(dependency.doc.uri);
-            doc && queue.push(...doc.#dependents);
+            queue.push(...dependency.dependents);
         }
     }
 }

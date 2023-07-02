@@ -2,7 +2,7 @@ import { Optional } from "tick-ts-utils";
 import { Diagnostic, Hover } from "vscode-languageserver";
 import { Expr, MlcValueExpr } from "../mythicParser/parserExpressions.js";
 import { CustomRange } from "../utils/positionsAndRanges.js";
-import { DocumentInfo } from "../yaml/parser/documentInfo.js";
+import { Dependency, DocumentInfo } from "../yaml/parser/documentInfo.js";
 
 export type MythicHolderType = "mechanic" | "condition" | "targeter";
 
@@ -20,10 +20,7 @@ export type MythicHolder = {
     examples?: Example[];
     fields?: MythicField[];
     pluginRequirements?: PluginRequirement[];
-    definition?: {
-        range: CustomRange;
-        doc: DocumentInfo;
-    };
+    definition?: Dependency
 };
 
 export type MythicField = {

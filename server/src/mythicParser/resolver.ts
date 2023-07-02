@@ -32,13 +32,14 @@ import {
     TriggerExpr,
 } from "./parserExpressions.js";
 import { MythicToken } from "./scanner.js";
+import { CachedMythicSkill } from "../mythicModels.js";
 
 export class Resolver extends ExprVisitor<void> {
     #source = "";
     #expr: Optional<Expr> = Optional.empty();
     #currentSkill?: SkillLineExpr;
     #skillVariables: Map<string, MlcValueExpr> = new Map();
-    constructor(public doc: DocumentInfo) {
+    constructor(public doc: DocumentInfo, public cachedSkill?: CachedMythicSkill) {
         super();
     }
     setAst(expr: Expr) {
@@ -108,7 +109,7 @@ export class Resolver extends ExprVisitor<void> {
                 });
                 if (data.definition) {
                     this.doc.addGotoDefinitionAndReverseReference(new RangeLink(mechanic.getNameRange(), data.definition.range, data.definition.doc));
-                    this.doc?.addDependency(new Dependency(data.definition.doc));
+                    this.cachedSkill?.dependencies.push(data.definition);
                     nameHighlight[1].push("mutable");
                 } else {
                     nameHighlight[1].push("defaultLibrary");

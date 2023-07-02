@@ -46,10 +46,11 @@ export function getHolderFromName(type: keyof MythicData, name: string): Optiona
             return Optional.of({
                 names: [name],
                 description: `User-defined skill ${skillName}${(skill.description ? `\n\n${skill.description}` : ". No description provided.")}\n\nDefined in ${skill.doc.fmt()}:${skill.declarationRange.fmt()}`,
-                definition: {
-                    doc: skill.doc,
-                    range: skill.declarationRange,
-                }
+                definition: skill
+                //  {
+                //     doc: skill.doc,
+                //     range: skill.declarationRange,
+                // }
             });
         }
     }

@@ -5,10 +5,7 @@ import { Resolver } from "../../mythicParser/resolver.js";
 import { CustomPosition, CustomRange } from "../../utils/positionsAndRanges.js";
 import { filterMap, getClosestTo } from "../../utils/utils.js";
 import { DocumentInfo } from "../parser/documentInfo.js";
-import { CachedMythicSkill } from "../../mythicModels.js";
-import { globalData } from "../../documentManager.js";
-import { CompletionItem, CompletionItemKind, Hover, SemanticTokenTypes } from "vscode-languageserver";
-import { Highlight } from "../../colors.js";
+import { CompletionItem, CompletionItemKind, Hover } from "vscode-languageserver";
 import { server } from "../../index.js";
 import { cursorValidInRange, getNodeValueRange, getNodeValueYamlRange, scalarValue } from "./schemaUtils.js";
 import { MythicScanner } from "../../mythicParser/scanner.js";
@@ -262,9 +259,9 @@ export class YNum extends YamlSchema {
     get rawTypeText() {
         let res = this.isInteger ? "integer" : "number";
         if (this.lowerBound !== undefined || this.upperBound !== undefined) {
-            res += `(${this.lowerBound?.toString() ?? ""}${this.lowerBound && this.lowerBoundInclusive ? "=" : ""}..${this.upperBound && this.upperBoundInclusive ? "=" : ""}${
-                this.upperBound?.toString() ?? ""
-            })`;
+            res += `(${this.lowerBound?.toString() ?? ""}${this.lowerBound && this.lowerBoundInclusive ? "=" : ""}..${
+                this.upperBound && this.upperBoundInclusive ? "=" : ""
+            }${this.upperBound?.toString() ?? ""})`;
         }
         return res;
     }
@@ -302,6 +299,56 @@ export class YArr extends YamlSchema {
         if (this.itemSchema instanceof YMythicSkill) {
             this.itemSchema.resolver = Optional.of(new Resolver(doc));
         }
+
+        if (!isCollection(value)) {
+            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
+        }
+
+        const errors: SchemaValidationError[] = [];
+
+        value.items.forEach((item) => {
+            const innerErrors = this.itemSchema.runPreValidation(doc, item as Node);
+            errors.push(...innerErrors);
+        });
+
+        return errors;
+    }
+    override postValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+        // traverse children
+        const errors: SchemaValidationError[] = [];
+        if (this.itemSchema instanceof YMythicSkill) {
+            this.itemSchema.resolver = Optional.of(new Resolver(doc));
+        }
+        isCollection(value) &&
+            value.items.forEach((item) => {
+                const innerErrors = this.itemSchema.runPostValidation(doc, item as Node);
+                errors.push(...innerErrors);
+            });
+        return errors;
+    }
+    override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
+        isCollection(value) &&
+            value.items.forEach((item) => {
+                this.itemSchema.autoComplete(doc, item as Node, cursor);
+            });
+    }
+    get rawTypeText() {
+        return `array(${this.itemSchema.typeText})`;
+    }
+}
+export class YMythicSkillArr extends YamlSchema {
+    constructor(public itemSchema: YMythicSkill, public resolver: Resolver) {
+        super();
+    }
+    setItemSchema(itemSchema: YMythicSkill) {
+        this.itemSchema = itemSchema;
+        return this;
+    }
+    override getDescription() {
+        return `an array of mythic skills.'`;
+    }
+    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
+        this.itemSchema.resolver = Optional.of(this.resolver);
 
         if (!isCollection(value)) {
             return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
@@ -517,10 +564,10 @@ export class YObj extends YamlSchema {
     }
 }
 export class YMap extends YamlSchema {
-    constructor(public values: YamlSchema) {
+    constructor(public values: YArr) {
         super();
     }
-    setValues(values: YamlSchema) {
+    setValues(values: YArr) {
         this.values = values;
         return this;
     }
@@ -545,102 +592,12 @@ export class YMap extends YamlSchema {
     override postValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
         // traverse children
         const errors: SchemaValidationError[] = [];
+
         isMap(value) &&
             value.items.forEach((item) => {
                 const innerErrors = this.values.runPostValidation(doc, item.value as Node);
                 errors.push(...innerErrors);
             });
-        return errors;
-    }
-    override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
-        isMap(value) &&
-            value.items.forEach((item) => {
-                this.values.autoComplete(doc, item.value as Node, cursor);
-            });
-    }
-    get rawTypeText() {
-        return `map(${this.values.typeText})`;
-    }
-}
-
-export class YMythicSkillMap extends YMap {
-    static generateKeyHover(name: string) {
-        return (
-            stripIndentation`# MetaSkill: \`${name}\`
-        Skills are a core feature of MythicMobs, allowing users to create custom abilities for their mobs or items that are triggered under various circumstances and with varying conditions.
-        A metaskill is a list of skills that can be called using a [🔗 Meta Mechanic](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Mechanics#advancedmeta-mechanics).
-
-        To declare a metaskill, use the following syntax:
-        ` +
-            `
-        \`\`\`yaml
-        internal_skillname:
-          Cooldown: [seconds]
-          OnCooldownSkill: [the metaskill to execute if this one is on cooldown]
-          CancelIfNoTargets: [true/false]
-          Conditions:
-          - condition1
-          - condition2
-          TargetConditions:
-          - condition3
-          - condition4
-          TriggerConditions:
-          - condition5
-          - condition6
-          Skills:
-          - mechanic1
-          - mechanic2
-        \`\`\`
-        `
-                .split("\n")
-                .map((line) => line.substring(8))
-                .join("\n") +
-            stripIndentation`
-        ## See Also
-
-        * [🔗 Wiki: Skills](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Skills)
-        * [🔗 Wiki: Metaskills](https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/Skills/Metaskills)
-        `
-        );
-    }
-    override getDescription() {
-        return "a map in which values are each a skill";
-    }
-    override preValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
-        if (!isMap(value)) {
-            return [new SchemaValidationError(this, `Expected type ${this.typeText}!`, doc, value)];
-        }
-
-        const errors: SchemaValidationError[] = [];
-
-        const { items } = value;
-        for (const item of items) {
-            if (item.key !== null) {
-                const keyNode = item.key as Node;
-                const key = keyNode.toString();
-                const declarationRange = CustomRange.fromYamlRange(doc.lineLengths, keyNode.range!);
-                globalData.mythic.skills.add(new CachedMythicSkill(doc, [keyNode, item.value as Node], declarationRange, key));
-                doc.addHover({
-                    range: declarationRange,
-                    contents: YMythicSkillMap.generateKeyHover(key),
-                });
-                doc.addHighlight(new Highlight(declarationRange, SemanticTokenTypes.function, ["declaration"]));
-            }
-            const error = this.values.runPreValidation(doc, item.value as Node);
-            errors.push(...error);
-        }
-        return errors;
-    }
-    override postValidate(doc: DocumentInfo, value: Node): SchemaValidationError[] {
-        if (!isMap(value)) {
-            return [];
-        }
-        const errors: SchemaValidationError[] = [];
-        const { items } = value;
-        for (const item of items) {
-            const error = this.values.runPostValidation(doc, item.value as Node);
-            errors.push(...error);
-        }
         return errors;
     }
     override autoComplete(doc: DocumentInfo, value: Node, cursor: CustomPosition): void {
@@ -738,11 +695,7 @@ export class YMythicSkill extends YamlSchema {
         const ast = getAst(doc, rangeOffset[0], skillLine);
         const errors: SchemaValidationError[] = [];
         if (ast.hasErrors()) {
-            errors.push(
-                ...ast.errors!.map(
-                    (error) => new SchemaValidationError(this, error.message, doc, value, error.range),
-                ),
-            );
+            errors.push(...ast.errors!.map((error) => new SchemaValidationError(this, error.message, doc, value, error.range)));
         }
 
         ast.skillLine &&

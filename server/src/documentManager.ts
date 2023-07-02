@@ -20,6 +20,9 @@ export const globalData = {
         delete(uri: string) {
             warn("documentManager", "Unregistering document", uri)
             this.list.delete(uri);
+        },
+        all() {
+            return Array.from(this.list.values());
         }
     },
     mythic: {
@@ -27,26 +30,16 @@ export const globalData = {
          * A cached registry of Mythic skills as a map of document URI to skill.
          */
         skills: {
-            map: new Map<string, CachedMythicSkill[]>(),
             add(skill: CachedMythicSkill) {
-                const skills = this.map.get(skill.doc.base.uri);
-                if (skills) {
-                    skills.push(skill);
-                } else {
-                    this.map.set(skill.doc.base.uri, [skill]);
-                }
+                const doc = skill.doc;
+                doc.cachedMythicSkills.push(skill);
             },
             all() {
-                const skills: CachedMythicSkill[] = [];
-                for (const skillList of this.map.values()) {
-                    skills.push(...skillList);
-                }
-                return skills;
+                return globalData.documents.all().flatMap((doc) => doc.cachedMythicSkills);
             },
         },
     },
     flush(uri: string) {
         this.documents.delete(uri);
-        this.mythic.skills.map.delete(uri);
     },
 };
