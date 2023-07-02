@@ -1,0 +1,3 @@
+[submodule "server"]
+	path = server
+	url = https://github.com/0tickpulse/mythic-language-server.git
