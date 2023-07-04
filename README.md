@@ -60,6 +60,7 @@ Below is a screenshot of item lore configuration (Credits: [@LcorpOfficial](http
 ## 🛣️ Roadmap
 
 - [ ] Complete data set
+- [ ] Major code cleanup - the current code is quite messy with tons of duplicate code, glboal state, etc. To make the extension more stable and easier to maintain, I'll have to rewrite a major portion of the code.
 - [ ] Sublime Text port - this will require a rename of the extension
 - [ ] Autocompletions
 
