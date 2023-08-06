@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 
 import { join } from "path";
-import { ExtensionContext, StatusBarItem, window } from "vscode";
+import { ExtensionContext, StatusBarItem, Uri, commands, env, window } from "vscode";
 import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node.js";
 
 let client: LanguageClient;
@@ -44,6 +44,27 @@ export async function activate(context: ExtensionContext) {
 
     client.start();
     log("Server started!");
+
+    context.subscriptions.push(
+        commands.registerCommand("vscode-mythic.restartLSP", async () => {
+            await client.stop();
+            await client.start();
+        }),
+        commands.registerCommand("vscode-mythic.openDocumentation", async () => {
+            env.openExternal(Uri.parse("https://git.lumine.io/mythiccraft/MythicMobs/-/wikis/home"));
+        }),
+        commands.registerCommand("vscode-mythic.debug.printDependencies", async () => {
+            const activeDoc = window.activeTextEditor?.document;
+            if (!activeDoc) {
+                window.showErrorMessage("No active document!");
+                return;
+            }
+            const res: Record<"dependencies" | "dependents", string[]> = await client.sendRequest("debug/printDependencies", {
+                uri: activeDoc.uri.toString(),
+            });
+            window.showInformationMessage(`Dependencies:\n${res.dependencies.join("\n")}\n\nDependents:\n${res.dependents.join("\n")}`);
+        }),
+    );
 }
 
 function fullParseDefaultStatus(status: StatusBarItem) {

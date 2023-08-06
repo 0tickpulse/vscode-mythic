@@ -30,8 +30,16 @@
     "contributes": {
         "commands": [
             {
-                "command": "vscode-mythic.helloWorld",
-                "title": "Hello World"
+                "command": "vscode-mythic.restartLSP",
+                "title": "VSCode Mythic: Restart Mythic Language Server"
+            },
+            {
+                "command": "vscode-mythic.openDocumentation",
+                "title": "VSCode Mythic: Open MythicMobs Documentation"
+            },
+            {
+                "command": "vscode-mythic.debug.printDependencies",
+                "title": "VSCode Mythic (Debug): Print Dependencies"
             }
         ]
     },
