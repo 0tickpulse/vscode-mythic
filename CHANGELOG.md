@@ -8,6 +8,14 @@
 - Intellisense for `randomskill` mechanic
 - Intellisense for `skill` mechanic
 
+### Removed
+
+- Hovers for metaskills will no longer show where they're defined. It's unnecessary because you can make use of the goto definition feature.
+
+### Fixed
+
+- Fixed a bug where the RGB values for item's `Options.Color` would be multiplied by 65025 instead of 255 (i.e. multiplying by 255 twice).
+
 ## 1.9.5 - 2023-07-02
 
 ### Changed
