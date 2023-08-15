@@ -1,5 +1,8 @@
 # Changelogs
 
+This file contains the changelogs for the MythicMobs extension.
+Note that this project does not follow [Semantic Versioning](https://semver.org/).
+
 ## Unreleased
 
 ### Added
