@@ -1,3 +1,9 @@
+# THIS EXTENSION IS DEPRECATED
+
+This extension is no longer maintained, but there is a new one [here](https://marketplace.visualstudio.com/items?itemName=0tickpulse.mythic-analyzer-vsc).
+
+---
+
 <div align="center"><h1><img src="./assets/mythicIcon_128x128.png" height=40> VSCode Mythic</h1></div>
 
 <div align="center">
@@ -13,18 +19,19 @@
 
 ## 📖 Table of Contents
 
-- [📖 Table of Contents](#-table-of-contents)
-- [🚀 Features](#-features)
-  - [🎉 Current](#-current)
-    - [Basic Syntax Highlighting](#basic-syntax-highlighting)
-    - [Go to definition and references](#go-to-definition-and-references)
-    - [Color decorations](#color-decorations)
-  - [🚧 Planned](#-planned)
-- [🚩 Current Limitations](#-current-limitations)
-- [🛣️ Roadmap](#️-roadmap)
-- [📦 Installation](#-installation)
-- [📝 License](#-license)
-- [❤️ Credits and Acknowledgements](#️-credits-and-acknowledgements)
+- [THIS EXTENSION IS DEPRECATED](#this-extension-is-deprecated)
+  - [📖 Table of Contents](#-table-of-contents)
+  - [🚀 Features](#-features)
+    - [🎉 Current](#-current)
+      - [Basic Syntax Highlighting](#basic-syntax-highlighting)
+      - [Go to definition and references](#go-to-definition-and-references)
+      - [Color decorations](#color-decorations)
+    - [🚧 Planned](#-planned)
+  - [🚩 Current Limitations](#-current-limitations)
+  - [🛣️ Roadmap](#️-roadmap)
+  - [📦 Installation](#-installation)
+  - [📝 License](#-license)
+  - [❤️ Credits and Acknowledgements](#️-credits-and-acknowledgements)
 
 ## 🚀 Features
 
@@ -60,7 +67,7 @@ Below is a screenshot of item lore configuration (Credits: [@LcorpOfficial](http
 ## 🛣️ Roadmap
 
 - [ ] Complete data set
-- [ ] Major code cleanup - the current code is quite messy with tons of duplicate code, global state, etc. To make the extension more stable and easier to maintain, I'll have to rewrite a major portion of the code.
+- [ ] Major code cleanup - the current code is quite messy with tons of duplicate code, global state, etc. To make the extension more stable and easier to maintain, I'll have to rewrite a major portion of the code. This will probably come with a major version bump.
 - [ ] Sublime Text port - this will require a rename of the extension
 - [ ] Autocompletions
 
